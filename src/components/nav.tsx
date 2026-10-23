@@ -30,11 +30,13 @@ export function BottomNav() {
             key={href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`flex h-16 flex-col items-center justify-center gap-1 text-[11px] ${
+            className={`flex h-[72px] flex-col items-center justify-center gap-1 text-xs ${
               active ? "font-semibold text-link" : "font-medium text-text-muted"
             }`}
           >
-            <Icon size={22} strokeWidth={1.8} aria-hidden="true" />
+            <span className={`flex h-8 w-14 items-center justify-center rounded-full ${active ? "bg-primary-soft" : ""}`}>
+              <Icon size={24} strokeWidth={1.8} aria-hidden="true" />
+            </span>
             {label}
           </Link>
         );
