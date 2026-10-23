@@ -1,14 +1,14 @@
 import "server-only";
-import { renderToBuffer, Text, View } from "@react-pdf/renderer";
+import { renderToBuffer, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { formatAge, formatDate, formatWeight, todayIso } from "@/lib/format";
 import { eventKindLabel } from "@/lib/health";
-import { average, observationLabel, OBSERVATIONS, SCALES, STOOL_OPTIONS, stoolLabel } from "@/lib/journal";
+import { average, observationLabel, OBSERVATIONS, rateScale, SCALES, STOOL_OPTIONS, stoolLabel } from "@/lib/journal";
 import { categoryLabel, describeSchedule, MED_CATEGORIES } from "@/lib/medications";
 import type { Tables } from "@/lib/database.types";
 import { formatLabValue, formatRange, labStatus } from "@/lib/labs";
-import { Empty, PdfDoc, s, Section, Table } from "./base";
-import { getDoseSummaries } from "@/lib/day-items";
+import { colors, Empty, PdfDoc, s, Section, Table } from "./base";
+import { getDoseSummaries, type DoseSummary } from "@/lib/day-items";
 
 type Pet = Tables<"pets">;
 
@@ -220,6 +220,81 @@ export async function healthPdf(pet: Pet) {
   );
 }
 
+const DOSE_STATUS_PDF: Record<string, string> = { given: "beadva", missed: "kimaradt", refused: "elutasította" };
+
+function JournalDay({ log, day, doses }: { log: Tables<"daily_logs"> | null; day: string; doses: DoseSummary | undefined }) {
+  const scales = log ? SCALES.filter((sc) => log[sc.key] !== null) : [];
+  const tags = log ? [stoolLabel(log.stool) && `Széklet: ${stoolLabel(log.stool)}`, ...log.observations.map(observationLabel)].filter(Boolean) : [];
+  return (
+    <View style={j.day} wrap={false}>
+      <View style={j.dayHead}>
+        <Text style={j.date}>{formatDate(day)}</Text>
+        {doses && doses.total > 0 && (
+          <Text style={[j.small, doses.given === doses.total ? j.ok : s.muted]}>
+            {doses.given} / {doses.total} adag beadva
+          </Text>
+        )}
+      </View>
+      {scales.length > 0 && (
+        <View style={j.chips}>
+          {scales.map((sc) => {
+            const value = log![sc.key]!;
+            return (
+              <Text key={sc.key} style={j.chip}>
+                {sc.short}: <Text style={j.bold}>{value}</Text> ({rateScale(sc.kind, value).word.toLowerCase()})
+              </Text>
+            );
+          })}
+        </View>
+      )}
+      {log && (log.pain_duration || log.water_ml != null) && (
+        <Text style={[j.small, s.muted]}>
+          {[log.pain_duration && `Fájdalom időtartama: ${log.pain_duration}`, log.water_ml != null && `Víz: ${log.water_ml} ml`].filter(Boolean).join(" · ")}
+        </Text>
+      )}
+      {tags.length > 0 && <Text style={j.line}>{tags.join(" · ")}</Text>}
+      {doses && doses.doses.length > 0 && (
+        <View style={j.doses}>
+          {doses.doses.map((d, i) => (
+            <View key={i} style={j.doseRow}>
+              <Text style={j.doseTime}>{d.time}</Text>
+              <Text style={j.doseName}>
+                {d.name}
+                {d.dosage ? ` · ${d.dosage}` : ""}
+              </Text>
+              <Text style={[j.doseStatus, d.status === "given" ? j.ok : d.status ? j.bad : s.muted]}>
+                {d.status ? DOSE_STATUS_PDF[d.status] : "nincs rögzítve"}
+                {d.status === "given" && d.givenAt && d.givenAt !== d.time ? ` (${d.givenAt})` : ""}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+      {log?.notes && <Text style={j.notes}>{log.notes}</Text>}
+      {!log && <Text style={[j.small, s.muted]}>Erre a napra nincs naplóbejegyzés.</Text>}
+    </View>
+  );
+}
+
+const j = StyleSheet.create({
+  day: { borderWidth: 0.75, borderColor: colors.border, borderRadius: 6, padding: 8, marginBottom: 7 },
+  dayHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 },
+  date: { fontSize: 11, fontWeight: 700 },
+  chips: { flexDirection: "row", flexWrap: "wrap", marginBottom: 3 },
+  chip: { fontSize: 9, backgroundColor: colors.soft, borderRadius: 4, paddingVertical: 2, paddingHorizontal: 5, marginRight: 4, marginBottom: 3 },
+  bold: { fontWeight: 700 },
+  small: { fontSize: 8.5 },
+  line: { fontSize: 9, marginBottom: 3 },
+  doses: { borderTopWidth: 0.5, borderTopColor: colors.border, paddingTop: 3, marginTop: 2 },
+  doseRow: { flexDirection: "row", paddingVertical: 1.5 },
+  doseTime: { width: 36, fontSize: 9, color: colors.muted },
+  doseName: { flex: 1, fontSize: 9 },
+  doseStatus: { width: 110, fontSize: 9, textAlign: "right" },
+  ok: { color: "#2e7a43" },
+  bad: { color: "#b42318" },
+  notes: { fontSize: 9, backgroundColor: colors.soft, borderRadius: 4, padding: 5, marginTop: 4 },
+});
+
 export async function journalPdf(pet: Pet, from: string, to: string) {
   const supabase = await createClient();
   const { data } = await supabase
@@ -233,61 +308,47 @@ export async function journalPdf(pet: Pet, from: string, to: string) {
   const doseSummaries = await getDoseSummaries(pet.id, from, to);
   const count = (pred: (l: Tables<"daily_logs">) => boolean) => logs.filter(pred).length;
 
+  // Minden nap, amelyre van naplóbejegyzés vagy legalább egy rögzített adag.
+  const logByDay = new Map(logs.map((l) => [l.day, l]));
+  const days = [
+    ...new Set([...logByDay.keys(), ...[...doseSummaries].filter(([, d]) => d.doses.some((x) => x.status)).map(([day]) => day)]),
+  ].sort();
+
   return renderToBuffer(
     <PdfDoc title="Napló kimutatás" subtitle={`${pet.name} · ${formatDate(from)} – ${formatDate(to)} · ${logs.length} bejegyzés`}>
-      {logs.length === 0 ? (
+      {days.length === 0 ? (
         <Empty>Ebben az időszakban nincs naplóbejegyzés.</Empty>
       ) : (
         <>
-          <Section title="Átlagok (0–10)">
-            <View style={s.facts}>
-              {SCALES.map((sc) => (
-                <View key={sc.key} style={s.fact}>
-                  <Text style={s.label}>{sc.label}</Text>
-                  <Text>{average(logs.map((l) => l[sc.key]))?.toLocaleString("hu-HU") ?? "–"}</Text>
+          {logs.length > 0 && (
+            <>
+              <Section title="Átlagok (0–10)">
+                <View style={s.facts}>
+                  {SCALES.map((sc) => (
+                    <View key={sc.key} style={s.fact}>
+                      <Text style={s.label}>{sc.label}</Text>
+                      <Text>{average(logs.map((l) => l[sc.key]))?.toLocaleString("hu-HU") ?? "–"}</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-          </Section>
-          <Section title="Széklet és megfigyelések (napok száma)">
-            <Text>
-              {[
-                ...STOOL_OPTIONS.map((o) => [o.label, count((l) => l.stool === o.value)] as const),
-                ...OBSERVATIONS.map((o) => [o.label, count((l) => l.observations.includes(o.value))] as const),
-              ]
-                .filter(([, n]) => n > 0)
-                .map(([label, n]) => `${label}: ${n}`)
-                .join("   ·   ") || "Nincs adat."}
-            </Text>
-          </Section>
+              </Section>
+              <Section title="Széklet és megfigyelések (napok száma)">
+                <Text>
+                  {[
+                    ...STOOL_OPTIONS.map((o) => [o.label, count((l) => l.stool === o.value)] as const),
+                    ...OBSERVATIONS.map((o) => [o.label, count((l) => l.observations.includes(o.value))] as const),
+                  ]
+                    .filter(([, n]) => n > 0)
+                    .map(([label, n]) => `${label}: ${n}`)
+                    .join("   ·   ") || "Nincs adat."}
+                </Text>
+              </Section>
+            </>
+          )}
           <Section title="Napi bejegyzések">
-            <Table
-              columns={[
-                { label: "Dátum", width: "12%" },
-                { label: "Kedv", width: "6%" },
-                { label: "Étvágy", width: "8%" },
-                { label: "Mozgás", width: "9%" },
-                { label: "Fájd.", width: "8%" },
-                { label: "Ivás", width: "8%" },
-                { label: "Széklet", width: "11%" },
-                { label: "Gyógyszer", width: "10%" },
-                { label: "Megfigyelések, leírás", width: "28%" },
-              ]}
-              rows={logs.map((l) => [
-                formatDate(l.day).replace(/^\d{4}\. /, ""),
-                l.mood?.toString(),
-                l.appetite?.toString(),
-                l.activity?.toString(),
-                [l.pain?.toString(), l.pain_duration && `(${l.pain_duration})`].filter(Boolean).join(" "),
-                [l.water?.toString(), l.water_ml != null && `${l.water_ml} ml`].filter(Boolean).join(" "),
-                stoolLabel(l.stool),
-                (() => {
-                  const d = doseSummaries.get(l.day);
-                  return d && d.total ? `${d.given}/${d.total}` : null;
-                })(),
-                [l.observations.map(observationLabel).join(", "), l.notes].filter(Boolean).join("\n"),
-              ])}
-            />
+            {days.map((day) => (
+              <JournalDay key={day} day={day} log={logByDay.get(day) ?? null} doses={doseSummaries.get(day)} />
+            ))}
           </Section>
         </>
       )}

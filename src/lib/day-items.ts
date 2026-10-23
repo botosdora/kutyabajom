@@ -65,7 +65,8 @@ export async function getDayItems(pet: Tables<"pets">, day: string) {
   return { items, vetEvents: allEvents.filter((e) => e.category === "orvosi") };
 }
 
-export type DoseSummary = { given: number; total: number; missed: string[] };
+export type DoseEntry = { name: string; dosage: string | null; time: string; status: string | null; givenAt: string | null };
+export type DoseSummary = { given: number; total: number; missed: string[]; doses: DoseEntry[] };
 
 // Napi gyógyszer-összesítő egy időszakra (a naplóbejegyzések kártyáihoz).
 export async function getDoseSummaries(petId: string, from: string, to: string) {
@@ -73,8 +74,15 @@ export async function getDoseSummaries(petId: string, from: string, to: string) 
   const { data } = await supabase.rpc("scheduled_doses", { p_pet_id: petId, p_from: from, p_to: to });
   const byDay = new Map<string, DoseSummary>();
   for (const d of data ?? []) {
-    const s = byDay.get(d.day) ?? { given: 0, total: 0, missed: [] };
+    const s = byDay.get(d.day) ?? { given: 0, total: 0, missed: [], doses: [] };
     s.total++;
+    s.doses.push({
+      name: d.name,
+      dosage: d.dosage,
+      time: formatTime(d.scheduled_for),
+      status: d.status,
+      givenAt: d.given_at ? formatTime(d.given_at) : null,
+    });
     if (d.status === "given") s.given++;
     else if (!s.missed.includes(d.name)) s.missed.push(d.name);
     byDay.set(d.day, s);
