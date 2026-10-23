@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ChevronRight, FileText, Pill, Scale, ShieldAlert, Stethoscope, Syringe, UserRound } from "lucide-react";
+import { ChevronRight, FileDown, FileText, Pill, Scale, ShieldAlert, Stethoscope, Syringe, UserRound } from "lucide-react";
 import { PetAvatar } from "@/components/pet-switcher";
-import { Card, PageHeader } from "@/components/ui";
+import { ButtonLink, Card, PageHeader } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentPet } from "@/lib/pets";
 import { formatAge, formatWeight } from "@/lib/format";
@@ -61,7 +61,14 @@ export default async function HealthPage() {
 
   return (
     <>
-      <PageHeader title="Egészség" />
+      <PageHeader
+        title="Egészség"
+        action={
+          <ButtonLink href="/export/egeszseg" variant="secondary" prefetch={false} target="_blank">
+            <FileDown size={18} aria-hidden="true" /> Összesítő PDF
+          </ButtonLink>
+        }
+      />
 
       <Card className="mb-6">
         <div className="mb-4 flex items-center gap-3">

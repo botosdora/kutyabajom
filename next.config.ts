@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // A PDF exportok betűtípusai fájlként kellenek a szerveren.
+  outputFileTracingIncludes: { "/export/**": ["./src/fonts/**"] },
+  serverExternalPackages: ["@react-pdf/renderer"],
   async headers() {
     return [
       {

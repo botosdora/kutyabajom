@@ -30,6 +30,19 @@ export async function addExpense(_: ActionResult, fd: FormData): Promise<ActionR
     return { message: "Elmentve a gyógyszer vásárlásai közé is." };
   }
 
+  if (category === "etel" && optional(fd, "food_id")) {
+    const { error } = await supabase.from("food_purchases").insert({
+      pet_id: petId,
+      food_id: required(fd, "food_id"),
+      purchased_on: spentOn,
+      cost_huf: Math.round(amount),
+      quantity: title,
+    });
+    if (error) return { error: "Nem sikerült menteni." };
+    revalidatePath("/", "layout");
+    return { message: "Elmentve a táp vásárlásai közé is." };
+  }
+
   if (!title) return { error: "Add meg, mire ment a kiadás." };
   let medicalEventId = category === "allatorvos" ? optional(fd, "medical_event_id") : null;
   if (medicalEventId === "__new") {
@@ -59,6 +72,7 @@ export async function addExpense(_: ActionResult, fd: FormData): Promise<ActionR
 export async function deleteExpense(id: string, source: string) {
   const supabase = await createClient();
   if (source === "medication_purchase") await supabase.from("medication_purchases").delete().eq("id", id);
+  else if (source === "food_purchase") await supabase.from("food_purchases").delete().eq("id", id);
   else await supabase.from("expenses").delete().eq("id", id);
   revalidatePath("/", "layout");
 }

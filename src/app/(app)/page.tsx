@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { ClipboardList, ShoppingBag, Stethoscope, Syringe } from "lucide-react";
+import { ClipboardList, NotebookPen, ShoppingBag, Stethoscope, Syringe, Utensils } from "lucide-react";
+import { TrendChart } from "@/components/trend-chart";
+import { TREND_SERIES, trendData } from "@/lib/trends";
 import { EventRow, type EventRowData } from "@/components/event-row";
 import { REMIND_DAYS, vetTypeLabel } from "@/lib/calendar";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
@@ -24,7 +26,7 @@ import { createClient } from "@/lib/supabase/server";
 type Reminder = {
   key: string;
   href: string;
-  icon: "reorder" | "vaccine" | "vet" | "task";
+  icon: "reorder" | "food" | "vaccine" | "vet" | "task";
   title: string;
   days: number;
   date: string;
@@ -32,6 +34,7 @@ type Reminder = {
 
 const REMINDER_STYLE = {
   reorder: { Icon: ShoppingBag, box: "bg-warn-soft", icon: "text-warn-text" },
+  food: { Icon: Utensils, box: "bg-warn-soft", icon: "text-warn-text" },
   vaccine: { Icon: Syringe, box: "bg-primary-soft", icon: "text-link" },
   vet: { Icon: Stethoscope, box: "bg-primary-soft", icon: "text-link" },
   task: { Icon: ClipboardList, box: "bg-surface-muted", icon: "text-text-muted" },
@@ -55,6 +58,8 @@ export default async function DashboardPage() {
     { data: pendingEvents },
     { data: upcomingEvents },
     { data: vetCosts },
+    { data: foodReorders },
+    { data: recentLogs },
   ] = await Promise.all([
     getWeights(pet.id),
     supabase.rpc("scheduled_doses", { p_pet_id: pet.id, p_from: today, p_to: today }),
@@ -95,7 +100,20 @@ export default async function DashboardPage() {
       .eq("category", "allatorvos")
       .gte("spent_on", monthStart)
       .lte("spent_on", today),
+    supabase
+      .from("foods")
+      .select("id, name, reorder_on")
+      .eq("pet_id", pet.id)
+      .eq("status", "active")
+      .lte("reorder_on", addDays(today, REMIND_DAYS.reorder)),
+    supabase
+      .from("daily_logs")
+      .select("day, mood, appetite, activity, pain")
+      .eq("pet_id", pet.id)
+      .gte("day", addDays(today, -13))
+      .order("day"),
   ]);
+  const loggedToday = (recentLogs ?? []).some((l) => l.day === today);
 
   // Napi teendők: az esedékes gyógyszerek és a két étkezés, időrendben.
   const doseItems: TodayItem[] = (doses ?? []).map((d) => ({
@@ -135,6 +153,14 @@ export default async function DashboardPage() {
       title: `${m.name} újravásárlás`,
       days: daysBetween(today, m.reorder_on!),
       date: m.reorder_on!,
+    })),
+    ...(foodReorders ?? []).map((f) => ({
+      key: `f-${f.id}`,
+      href: `/etkezes/${f.id}`,
+      icon: "food" as const,
+      title: `${f.name} újrarendelés`,
+      days: daysBetween(today, f.reorder_on!),
+      date: f.reorder_on!,
     })),
     ...(expiring ?? []).map((v) => ({
       key: `v-${v.id}`,
@@ -193,6 +219,18 @@ export default async function DashboardPage() {
           <TodayList items={items} petId={pet.id} day={today} />
           <Link href="/gyogyszerek" className="mt-2 inline-block text-sm font-medium text-link">
             Gyógyszerek kezelése →
+          </Link>
+
+          <Link
+            href="/naplo"
+            className={`mt-6 flex items-center gap-3 rounded-2xl px-4 py-3 ${loggedToday ? "border border-border bg-surface" : "bg-primary-soft"}`}
+          >
+            <NotebookPen size={22} className="text-link" aria-hidden="true" />
+            <span className="flex-1">
+              <span className="block text-sm font-semibold">{loggedToday ? "A mai napló kitöltve" : "Töltsd ki a mai naplót"}</span>
+              <span className="block text-xs text-text-muted">Kedv, étvágy, mozgás, fájdalom, széklet…</span>
+            </span>
+            <span className="text-sm font-semibold text-link">{loggedToday ? "Módosítás" : "Kitöltés"}</span>
           </Link>
 
           {!!pendingEvents?.length && (
@@ -296,9 +334,17 @@ export default async function DashboardPage() {
                 <p className="py-4 text-sm text-text-muted">Még nincs rögzített súly.</p>
               )}
             </Card>
-            <p className="mt-2 text-xs text-text-muted">
-              Az étvágy, a mozgás és a fájdalom trendje a napló elkészülte után (5. fázis) jelenik meg.
-            </p>
+            <Card className="mt-3">
+              <div className="flex items-baseline justify-between">
+                <p className="text-xs font-semibold uppercase text-text-muted">Napló, utolsó 14 nap</p>
+                <Link href="/naplo/kimutatas" className="text-sm font-medium text-link">
+                  Kimutatás
+                </Link>
+              </div>
+              <div className="mt-2">
+                <TrendChart data={trendData(recentLogs ?? [])} series={TREND_SERIES} height={200} />
+              </div>
+            </Card>
           </section>
         </div>
       </div>

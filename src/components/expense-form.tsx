@@ -11,6 +11,7 @@ export function ExpenseForm({
   petId,
   categories,
   medications,
+  foods,
   medicalEvents,
   today,
 }: {
@@ -18,12 +19,14 @@ export function ExpenseForm({
   petId: string;
   categories: Option[];
   medications: Option[];
+  foods: Option[];
   medicalEvents: Option[];
   today: string;
 }) {
   const [category, setCategory] = useState("allatorvos");
   const [medicationId, setMedicationId] = useState("");
-  const isMedPurchase = category === "gyogyszer" && medicationId !== "";
+  const [foodId, setFoodId] = useState("");
+  const isMedPurchase = (category === "gyogyszer" && medicationId !== "") || (category === "etel" && foodId !== "");
 
   return (
     <AddPanel label="Új kiadás" action={action}>
@@ -41,6 +44,15 @@ export function ExpenseForm({
           value={medicationId}
           onChange={(e) => setMedicationId(e.target.value)}
           options={[{ value: "", label: "– egyik sem –" }, ...medications]}
+        />
+      )}
+      {category === "etel" && foods.length > 0 && (
+        <Select
+          label="Melyik táp vagy jutalomfalat?"
+          name="food_id"
+          value={foodId}
+          onChange={(e) => setFoodId(e.target.value)}
+          options={[{ value: "", label: "– egyik sem –" }, ...foods]}
         />
       )}
       {category === "allatorvos" && (

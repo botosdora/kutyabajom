@@ -186,6 +186,68 @@ export type Database = {
           },
         ]
       }
+      daily_logs: {
+        Row: {
+          activity: number | null
+          appetite: number | null
+          created_by: string | null
+          day: string
+          id: string
+          mood: number | null
+          notes: string | null
+          observations: string[]
+          pain: number | null
+          pain_duration: string | null
+          pet_id: string
+          stool: string | null
+          updated_at: string
+          water: number | null
+          water_ml: number | null
+        }
+        Insert: {
+          activity?: number | null
+          appetite?: number | null
+          created_by?: string | null
+          day: string
+          id?: string
+          mood?: number | null
+          notes?: string | null
+          observations?: string[]
+          pain?: number | null
+          pain_duration?: string | null
+          pet_id: string
+          stool?: string | null
+          updated_at?: string
+          water?: number | null
+          water_ml?: number | null
+        }
+        Update: {
+          activity?: number | null
+          appetite?: number | null
+          created_by?: string | null
+          day?: string
+          id?: string
+          mood?: number | null
+          notes?: string | null
+          observations?: string[]
+          pain?: number | null
+          pain_duration?: string | null
+          pet_id?: string
+          stool?: string | null
+          updated_at?: string
+          water?: number | null
+          water_ml?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_logs_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string
@@ -357,6 +419,107 @@ export type Database = {
           },
           {
             foreignKeyName: "expenses_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      food_purchases: {
+        Row: {
+          cost_huf: number | null
+          created_at: string
+          created_by: string | null
+          food_id: string
+          id: string
+          pet_id: string
+          purchased_on: string
+          quantity: string | null
+        }
+        Insert: {
+          cost_huf?: number | null
+          created_at?: string
+          created_by?: string | null
+          food_id: string
+          id?: string
+          pet_id: string
+          purchased_on?: string
+          quantity?: string | null
+        }
+        Update: {
+          cost_huf?: number | null
+          created_at?: string
+          created_by?: string | null
+          food_id?: string
+          id?: string
+          pet_id?: string
+          purchased_on?: string
+          quantity?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_purchases_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "foods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_purchases_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      foods: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          daily_grams: number | null
+          fail_reason: string | null
+          food_type: string | null
+          id: string
+          kind: string
+          name: string
+          notes: string | null
+          pet_id: string
+          reorder_on: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          daily_grams?: number | null
+          fail_reason?: string | null
+          food_type?: string | null
+          id?: string
+          kind?: string
+          name: string
+          notes?: string | null
+          pet_id: string
+          reorder_on?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          daily_grams?: number | null
+          fail_reason?: string | null
+          food_type?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string | null
+          pet_id?: string
+          reorder_on?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "foods_pet_id_fkey"
             columns: ["pet_id"]
             isOneToOne: false
             referencedRelation: "pets"

@@ -32,6 +32,11 @@ npm run db:types
 Minden kutyához tartozó adatot sorszintű biztonság (RLS) véd: csak a kutya
 gazdái (`pet_members`) férnek hozzá.
 
+### PDF exportok
+
+A `/export/gyogyszerek`, `/export/egeszseg` és `/export/naplo` útvonalak `@react-pdf/renderer`-rel
+készítenek PDF-et. A magyar ékezetekhez az Inter betűtípus a `src/fonts` mappában van.
+
 ### Értesítések
 
 - Az app telepíthető (PWA), a `public/sw.js` service worker jeleníti meg a push értesítéseket.
@@ -53,4 +58,4 @@ beállítani (Authentication → Emails).
 2. ✅ Gyógyszerek és ütemezés, dashboard napi teendőkkel
 3. ✅ Naptár, vizsgálatok, események, dokumentumfeltöltés, költségek
 4. ✅ PWA push értesítések
-5. Napló, trendek, étkezés (tápok), PDF exportok
+5. ✅ Napló, trendek, étkezés (tápok), PDF exportok

@@ -49,7 +49,7 @@ export default async function ExpensesPage({
   const range = periodRange(idoszak, today, tol, ig);
   const supabase = await createClient();
 
-  const [{ data: items }, { data: meds }, { data: events }] = await Promise.all([
+  const [{ data: items }, { data: meds }, { data: events }, { data: foods }] = await Promise.all([
     supabase
       .from("all_expenses")
       .select("*")
@@ -59,6 +59,7 @@ export default async function ExpensesPage({
       .order("spent_on", { ascending: false }),
     supabase.from("medications").select("id, name").eq("pet_id", pet.id).order("name"),
     supabase.from("medical_events").select("id, title, event_date").eq("pet_id", pet.id).order("event_date", { ascending: false }).limit(30),
+    supabase.from("foods").select("id, name").eq("pet_id", pet.id).neq("status", "failed").order("name"),
   ]);
 
   const list = items ?? [];
@@ -133,6 +134,7 @@ export default async function ExpensesPage({
           petId={pet.id}
           categories={EXPENSE_CATEGORIES}
           medications={(meds ?? []).map((m) => ({ value: m.id, label: m.name }))}
+          foods={(foods ?? []).map((f) => ({ value: f.id, label: f.name }))}
           medicalEvents={(events ?? []).map((e) => ({ value: e.id, label: `${e.title} (${formatDate(e.event_date)})` }))}
           today={today}
         />

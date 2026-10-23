@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Pill } from "lucide-react";
+import { ChevronRight, FileDown, Pill } from "lucide-react";
 import { ButtonLink, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { daysBetween, inDaysLabel, todayIso } from "@/lib/format";
@@ -49,7 +49,14 @@ export default async function MedicationsPage() {
         title="Gyógyszerek"
         subtitle={pet.name}
         back={{ href: "/egeszseg", label: "Egészség" }}
-        action={<ButtonLink href="/gyogyszerek/uj">+ Új</ButtonLink>}
+        action={
+          <div className="flex gap-2">
+            <ButtonLink href="/export/gyogyszerek" variant="secondary" prefetch={false} target="_blank" aria-label="Gyógyszerlista PDF">
+              <FileDown size={18} aria-hidden="true" /> PDF
+            </ButtonLink>
+            <ButtonLink href="/gyogyszerek/uj">+ Új</ButtonLink>
+          </div>
+        }
       />
 
       {active.length === 0 && inactive.length === 0 && (
