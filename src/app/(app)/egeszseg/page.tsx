@@ -11,10 +11,10 @@ export const metadata = { title: "Egészség" };
 export default async function HealthPage() {
   const pet = await requireCurrentPet();
   const supabase = await createClient();
-  const count = (table: "allergies" | "conditions" | "vaccinations" | "medical_events" | "vets") =>
+  const count = (table: "allergies" | "conditions" | "vaccinations" | "medical_events" | "vets" | "documents") =>
     supabase.from(table).select("id", { count: "exact", head: true }).eq("pet_id", pet.id);
 
-  const [latestWeight, allergies, conditions, vaccinations, events, vets] = await Promise.all([
+  const [latestWeight, allergies, conditions, vaccinations, events, vets, docs] = await Promise.all([
     supabase
       .from("weights")
       .select("weight_kg")
@@ -28,6 +28,7 @@ export default async function HealthPage() {
     count("vaccinations"),
     count("medical_events"),
     count("vets"),
+    count("documents"),
   ]);
 
   const facts = [
@@ -54,6 +55,7 @@ export default async function HealthPage() {
       icon: Stethoscope,
       meta: `${events.count ?? 0} esemény`,
     },
+    { href: "/egeszseg/dokumentumok", label: "Orvosi dokumentumok", icon: FileText, meta: `${docs.count ?? 0} dokumentum` },
     { href: "/egeszseg/orvosok", label: "Orvosok", icon: UserRound, meta: `${vets.count ?? 0} orvos` },
   ];
 
@@ -99,15 +101,6 @@ export default async function HealthPage() {
             </Link>
           </li>
         ))}
-        <li className="flex items-center gap-3 rounded-2xl border border-dashed border-border-strong px-4 py-3 text-text-muted">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-surface-muted">
-            <FileText size={20} aria-hidden="true" />
-          </span>
-          <span>
-            <span className="block font-semibold">Orvosi dokumentumok</span>
-            <span className="block text-sm">A 3. fázisban érkezik</span>
-          </span>
-        </li>
       </ul>
     </>
   );

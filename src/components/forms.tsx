@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
+import { Trash2 } from "lucide-react";
 import { Alert, buttonClass, type ButtonVariant } from "@/components/ui";
 import { useToast } from "@/components/toast";
 
@@ -96,10 +97,10 @@ export function AddPanel({
   );
 }
 
-// Törlés gomb megerősítéssel.
+// Törlés gomb megerősítéssel. Felirat nélkül csak egy kuka ikon (listákhoz).
 export function DeleteButton({
   action,
-  label = "Törlés",
+  label,
   confirmText = "Biztosan törlöd?",
 }: {
   action: () => Promise<void>;
@@ -113,9 +114,20 @@ export function DeleteButton({
         if (!window.confirm(confirmText)) e.preventDefault();
       }}
     >
-      <button type="submit" className={buttonClass("danger", "h-9 px-3 text-sm")}>
-        {label}
-      </button>
+      {label ? (
+        <button type="submit" className={buttonClass("danger", "h-9 px-3 text-sm")}>
+          {label}
+        </button>
+      ) : (
+        <button
+          type="submit"
+          aria-label="Törlés"
+          title="Törlés"
+          className="flex size-11 items-center justify-center rounded-xl text-text-muted hover:bg-danger-soft hover:text-danger"
+        >
+          <Trash2 size={18} aria-hidden="true" />
+        </button>
+      )}
     </form>
   );
 }

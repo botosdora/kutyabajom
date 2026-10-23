@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { ShoppingBag, Syringe } from "lucide-react";
+import { ClipboardList, ShoppingBag, Stethoscope, Syringe } from "lucide-react";
+import { EventRow, type EventRowData } from "@/components/event-row";
+import { REMIND_DAYS, vetTypeLabel } from "@/lib/calendar";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { TodayList, type TodayItem } from "@/components/today-list";
 import { WeightChart } from "@/components/weight-chart";
@@ -7,6 +9,7 @@ import { weightSeries } from "@/lib/charts";
 import {
   addDays,
   daysBetween,
+  formatHuf,
   formatShortDate,
   formatTime,
   formatWeight,
@@ -18,14 +21,41 @@ import { getWeights } from "@/lib/health";
 import { requireCurrentPet } from "@/lib/pets";
 import { createClient } from "@/lib/supabase/server";
 
-type Reminder = { key: string; href: string; icon: "reorder" | "vaccine"; title: string; days: number; date: string };
+type Reminder = {
+  key: string;
+  href: string;
+  icon: "reorder" | "vaccine" | "vet" | "task";
+  title: string;
+  days: number;
+  date: string;
+};
+
+const REMINDER_STYLE = {
+  reorder: { Icon: ShoppingBag, box: "bg-warn-soft", icon: "text-warn-text" },
+  vaccine: { Icon: Syringe, box: "bg-primary-soft", icon: "text-link" },
+  vet: { Icon: Stethoscope, box: "bg-primary-soft", icon: "text-link" },
+  task: { Icon: ClipboardList, box: "bg-surface-muted", icon: "text-text-muted" },
+};
+
+const EVENT_SELECT = "id, category, vet_type, title, event_date, event_time, status, task_types(name)";
 
 export default async function DashboardPage() {
   const pet = await requireCurrentPet();
   const supabase = await createClient();
   const today = todayIso();
 
-  const [weights, { data: doses }, { data: meals }, { data: reorders }, { data: expiring }] = await Promise.all([
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const [
+    weights,
+    { data: doses },
+    { data: meals },
+    { data: reorders },
+    { data: expiring },
+    { data: todayEvents },
+    { data: pendingEvents },
+    { data: upcomingEvents },
+    { data: vetCosts },
+  ] = await Promise.all([
     getWeights(pet.id),
     supabase.rpc("scheduled_doses", { p_pet_id: pet.id, p_from: today, p_to: today }),
     supabase.from("meal_logs").select("*").eq("pet_id", pet.id).eq("day", today),
@@ -43,6 +73,28 @@ export default async function DashboardPage() {
       .gte("valid_until", today)
       .lte("valid_until", addDays(today, 30))
       .order("valid_until"),
+    supabase.from("calendar_events").select(EVENT_SELECT).eq("pet_id", pet.id).eq("event_date", today).order("event_time"),
+    supabase
+      .from("calendar_events")
+      .select(EVENT_SELECT)
+      .eq("pet_id", pet.id)
+      .eq("status", "planned")
+      .lt("event_date", today)
+      .order("event_date"),
+    supabase
+      .from("calendar_events")
+      .select("id, category, vet_type, title, event_date")
+      .eq("pet_id", pet.id)
+      .eq("status", "planned")
+      .gt("event_date", today)
+      .lte("event_date", addDays(today, REMIND_DAYS.orvosi)),
+    supabase
+      .from("all_expenses")
+      .select("amount_huf")
+      .eq("pet_id", pet.id)
+      .eq("category", "allatorvos")
+      .gte("spent_on", monthStart)
+      .lte("spent_on", today),
   ]);
 
   // Napi teendők: az esedékes gyógyszerek és a két étkezés, időrendben.
@@ -92,7 +144,22 @@ export default async function DashboardPage() {
       days: daysBetween(today, v.valid_until!),
       date: v.valid_until!,
     })),
+    ...(upcomingEvents ?? [])
+      .filter((e) => daysBetween(today, e.event_date) <= REMIND_DAYS[e.category as "orvosi" | "feladat"])
+      .map((e) => ({
+        key: `e-${e.id}`,
+        href: `/naptar/${e.id}`,
+        icon: e.category === "orvosi" ? ("vet" as const) : ("task" as const),
+        title:
+          e.category === "orvosi" && !e.title.toLowerCase().includes(vetTypeLabel(e.vet_type).toLowerCase())
+            ? `${e.title} (${vetTypeLabel(e.vet_type).toLowerCase()})`
+            : e.title,
+        days: daysBetween(today, e.event_date),
+        date: e.event_date,
+      })),
   ].sort((a, b) => a.days - b.days);
+  const monthVetCost = (vetCosts ?? []).reduce((sum, c) => sum + (c.amount_huf ?? 0), 0);
+  const monthName = new Intl.DateTimeFormat("hu-HU", { month: "long", timeZone: "Europe/Budapest" }).format(new Date());
 
   const latest = weights[0];
   const monthAgo = weights.find((w) => w.measured_on <= addDays(today, -30));
@@ -127,6 +194,39 @@ export default async function DashboardPage() {
           <Link href="/gyogyszerek" className="mt-2 inline-block text-sm font-medium text-link">
             Gyógyszerek kezelése →
           </Link>
+
+          {!!pendingEvents?.length && (
+            <div className="mt-6">
+              <SectionTitle>Visszajelzésre vár</SectionTitle>
+              <p className="mb-2 text-sm text-text-muted">Megtörtént? Koppints rá, és rögzítsd.</p>
+              <ul className="flex flex-col gap-2">
+                {(pendingEvents as EventRowData[]).map((e) => (
+                  <EventRow key={e.id} event={e} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-6">
+            <SectionTitle
+              action={
+                <Link href={`/naptar/uj?nap=${today}`} className="text-sm font-semibold text-link">
+                  + Új
+                </Link>
+              }
+            >
+              Mai események
+            </SectionTitle>
+            {todayEvents?.length ? (
+              <ul className="flex flex-col gap-2">
+                {(todayEvents as EventRowData[]).map((e) => (
+                  <EventRow key={e.id} event={e} showDate={false} />
+                ))}
+              </ul>
+            ) : (
+              <EmptyState>Mára nincs vizsgálat vagy feladat.</EmptyState>
+            )}
+          </div>
         </section>
 
         <div className="flex flex-col gap-6">
@@ -135,21 +235,15 @@ export default async function DashboardPage() {
             {reminders.length ? (
               <ul className="flex flex-col gap-2">
                 {reminders.map((r) => {
-                  const Icon = r.icon === "reorder" ? ShoppingBag : Syringe;
+                  const { Icon, box, icon } = REMINDER_STYLE[r.icon];
                   const overdue = r.days < 0;
                   return (
                     <li key={r.key}>
                       <Link
                         href={r.href}
-                        className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${
-                          r.icon === "reorder" ? "bg-warn-soft" : "bg-primary-soft"
-                        }`}
+                        className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${box}`}
                       >
-                        <Icon
-                          size={22}
-                          className={r.icon === "reorder" ? "text-warn-text" : "text-link"}
-                          aria-hidden="true"
-                        />
+                        <Icon size={22} className={icon} aria-hidden="true" />
                         <span className="flex-1">
                           <span className="block text-sm font-semibold">{r.title}</span>
                           <span
@@ -164,9 +258,15 @@ export default async function DashboardPage() {
                 })}
               </ul>
             ) : (
-              <EmptyState>Nincs közelgő újravásárlás vagy lejáró oltás.</EmptyState>
+              <EmptyState>Nincs közelgő vizsgálat, feladat, újravásárlás vagy lejáró oltás.</EmptyState>
             )}
           </section>
+
+          <Link href="/koltsegek" className="block rounded-2xl border border-border bg-surface p-4 hover:bg-surface-muted">
+            <p className="text-xs font-semibold uppercase text-text-muted">Állatorvosi költség, {monthName}</p>
+            <p className="text-2xl font-bold">{formatHuf(monthVetCost)}</p>
+            <p className="text-sm font-medium text-link">Összes költség →</p>
+          </Link>
 
           <section>
             <SectionTitle action={<span className="text-xs text-text-muted">utolsó mérések</span>}>

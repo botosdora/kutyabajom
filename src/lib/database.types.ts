@@ -49,6 +49,102 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          category: string
+          completed_on: string | null
+          created_at: string
+          created_by: string | null
+          event_date: string
+          event_time: string | null
+          id: string
+          location: string | null
+          medical_event_id: string | null
+          notes: string | null
+          pet_id: string
+          status: string
+          task_type_id: string | null
+          title: string
+          vaccination_id: string | null
+          vet_id: string | null
+          vet_type: string | null
+        }
+        Insert: {
+          category: string
+          completed_on?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_date: string
+          event_time?: string | null
+          id?: string
+          location?: string | null
+          medical_event_id?: string | null
+          notes?: string | null
+          pet_id: string
+          status?: string
+          task_type_id?: string | null
+          title: string
+          vaccination_id?: string | null
+          vet_id?: string | null
+          vet_type?: string | null
+        }
+        Update: {
+          category?: string
+          completed_on?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_date?: string
+          event_time?: string | null
+          id?: string
+          location?: string | null
+          medical_event_id?: string | null
+          notes?: string | null
+          pet_id?: string
+          status?: string
+          task_type_id?: string | null
+          title?: string
+          vaccination_id?: string | null
+          vet_id?: string | null
+          vet_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_medical_event_id_fkey"
+            columns: ["medical_event_id"]
+            isOneToOne: false
+            referencedRelation: "medical_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_task_type_id_fkey"
+            columns: ["task_type_id"]
+            isOneToOne: false
+            referencedRelation: "task_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_vaccination_id_fkey"
+            columns: ["vaccination_id"]
+            isOneToOne: false
+            referencedRelation: "vaccinations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_vet_id_fkey"
+            columns: ["vet_id"]
+            isOneToOne: false
+            referencedRelation: "vets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conditions: {
         Row: {
           active: boolean
@@ -83,6 +179,69 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "conditions_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          doc_type: string
+          document_date: string
+          file_name: string
+          id: string
+          medical_event_id: string | null
+          mime_type: string | null
+          pet_id: string
+          size_bytes: number | null
+          storage_path: string
+          tags: string[]
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          doc_type?: string
+          document_date?: string
+          file_name: string
+          id?: string
+          medical_event_id?: string | null
+          mime_type?: string | null
+          pet_id: string
+          size_bytes?: number | null
+          storage_path: string
+          tags?: string[]
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          doc_type?: string
+          document_date?: string
+          file_name?: string
+          id?: string
+          medical_event_id?: string | null
+          mime_type?: string | null
+          pet_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+          tags?: string[]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_medical_event_id_fkey"
+            columns: ["medical_event_id"]
+            isOneToOne: false
+            referencedRelation: "medical_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_pet_id_fkey"
             columns: ["pet_id"]
             isOneToOne: false
             referencedRelation: "pets"
@@ -134,6 +293,70 @@ export type Database = {
           },
           {
             foreignKeyName: "dose_logs_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          amount_huf: number
+          calendar_event_id: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          medical_event_id: string | null
+          notes: string | null
+          pet_id: string
+          spent_on: string
+          title: string
+        }
+        Insert: {
+          amount_huf: number
+          calendar_event_id?: string | null
+          category: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          medical_event_id?: string | null
+          notes?: string | null
+          pet_id: string
+          spent_on?: string
+          title: string
+        }
+        Update: {
+          amount_huf?: number
+          calendar_event_id?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          medical_event_id?: string | null
+          notes?: string | null
+          pet_id?: string
+          spent_on?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_calendar_event_id_fkey"
+            columns: ["calendar_event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_medical_event_id_fkey"
+            columns: ["medical_event_id"]
+            isOneToOne: false
+            referencedRelation: "medical_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_pet_id_fkey"
             columns: ["pet_id"]
             isOneToOne: false
             referencedRelation: "pets"
@@ -444,6 +667,35 @@ export type Database = {
         }
         Relationships: []
       }
+      task_types: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          pet_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          pet_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          pet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_types_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vaccinations: {
         Row: {
           created_at: string
@@ -588,7 +840,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      all_expenses: {
+        Row: {
+          amount_huf: number | null
+          category: string | null
+          id: string | null
+          medical_event_id: string | null
+          medication_id: string | null
+          notes: string | null
+          pet_id: string | null
+          source: string | null
+          spent_on: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_pet_member: {

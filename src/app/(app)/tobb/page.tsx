@@ -15,6 +15,7 @@ export const metadata = { title: "Több" };
 const MENU = [
   { href: "/gyogyszerek", label: "Gyógyszerek és kiegészítők", icon: Pill },
   { href: "/etkezes", label: "Étkezés", icon: Utensils },
+  { href: "/koltsegek", label: "Költségek", icon: Wallet },
 ];
 
 export default async function MorePage() {
@@ -42,11 +43,6 @@ export default async function MorePage() {
             </Link>
           </li>
         ))}
-        <li className="flex items-center gap-3 px-4 py-3 text-text-muted">
-          <Wallet size={20} aria-hidden="true" />
-          <span className="flex-1 font-medium">Költségek</span>
-          <span className="text-xs">hamarosan</span>
-        </li>
       </ul>
 
       <section className="mb-6">

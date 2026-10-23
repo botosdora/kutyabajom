@@ -1,14 +1,26 @@
 import { notFound } from "next/navigation";
+import { DocumentList } from "@/components/document-list";
+import { DocumentUpload } from "@/components/document-upload";
 import { ActionForm, DeleteButton, SubmitButton } from "@/components/forms";
 import { MedicalEventFields } from "@/components/medical-event-fields";
-import { Card, PageHeader } from "@/components/ui";
+import { Alert, Card, PageHeader, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { formatDate, todayIso } from "@/lib/format";
+import { DOC_TYPES } from "@/lib/documents";
+import { expenseCategoryLabel } from "@/lib/expenses";
+import { formatDate, formatHuf, todayIso } from "@/lib/format";
+import { supabaseKey, supabaseUrl } from "@/lib/supabase/env";
 import { EVENT_KINDS, eventKindLabel, getVets, vetOptions } from "@/lib/health";
 import { deleteRecord, updateMedicalEvent } from "../../actions";
 
-export default async function MedicalEventPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function MedicalEventPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ uj?: string }>;
+}) {
   const { id } = await params;
+  const { uj } = await searchParams;
   const supabase = await createClient();
   const { data: event } = await supabase
     .from("medical_events")
@@ -16,7 +28,11 @@ export default async function MedicalEventPage({ params }: { params: Promise<{ i
     .eq("id", id)
     .maybeSingle();
   if (!event) notFound();
-  const vets = await getVets(event.pet_id);
+  const [vets, { data: docs }, { data: costs }] = await Promise.all([
+    getVets(event.pet_id),
+    supabase.from("documents").select("*").eq("medical_event_id", id).order("document_date", { ascending: false }),
+    supabase.from("expenses").select("id, amount_huf, category, spent_on").eq("medical_event_id", id),
+  ]);
 
   return (
     <>
@@ -25,6 +41,12 @@ export default async function MedicalEventPage({ params }: { params: Promise<{ i
         subtitle={`${formatDate(event.event_date)} · ${eventKindLabel(event.kind)}`}
         back={{ href: "/egeszseg/beavatkozasok", label: "Beavatkozások" }}
       />
+
+      {uj && (
+        <div className="mb-4">
+          <Alert kind="success">Rögzítve. Ha van kórlap vagy lelet, csatold itt lent.</Alert>
+        </div>
+      )}
 
       {(event.description || event.vets) && (
         <Card className="mb-6">
@@ -53,9 +75,38 @@ export default async function MedicalEventPage({ params }: { params: Promise<{ i
         </div>
       </details>
 
-      <p className="mb-6 text-sm text-text-muted">
-        A dokumentumok csatolása és a költségek a későbbi fázisokban érkeznek.
-      </p>
+      <section className="mb-6">
+        <SectionTitle>Dokumentumok</SectionTitle>
+        {!!docs?.length && (
+          <div className="mb-3">
+            <DocumentList docs={docs} />
+          </div>
+        )}
+        <DocumentUpload
+          petId={event.pet_id}
+          supabaseUrl={supabaseUrl}
+          supabaseKey={supabaseKey}
+          docTypes={DOC_TYPES}
+          today={event.event_date}
+          medicalEventId={event.id}
+        />
+      </section>
+
+      {!!costs?.length && (
+        <section className="mb-6">
+          <SectionTitle>Költségek</SectionTitle>
+          <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
+            {costs.map((c) => (
+              <li key={c.id} className="flex justify-between px-4 py-2.5 text-sm">
+                <span>
+                  {formatDate(c.spent_on)} · {expenseCategoryLabel(c.category)}
+                </span>
+                <span className="font-semibold">{formatHuf(c.amount_huf)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <DeleteButton
         action={deleteRecord.bind(null, "medical_events", event.id, `/egeszseg/beavatkozasok/${event.id}`)}

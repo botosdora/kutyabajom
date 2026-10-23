@@ -41,7 +41,7 @@ beállítani (Authentication → Emails).
 ## Fázisok
 
 1. ✅ Regisztráció, kutyaprofilok, közös gazdik, adatlap, súly, allergiák és betegségek, oltások, orvosi beavatkozások, orvosok
-2. Gyógyszerek és ütemezés, dashboard napi teendőkkel
-3. Naptár, vizsgálatok, események, dokumentumfeltöltés
+2. ✅ Gyógyszerek és ütemezés, dashboard napi teendőkkel
+3. ✅ Naptár, vizsgálatok, események, dokumentumfeltöltés, költségek
 4. PWA push értesítések
-5. Napló, trendek, étkezés, költségek, PDF exportok
+5. Napló, trendek, étkezés (tápok), PDF exportok
