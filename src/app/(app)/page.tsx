@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { BellRing, Cake, Clock, PartyPopper, CalendarDays, ClipboardList, ListTodo, MessageCircleQuestion, NotebookPen, ShoppingBag, Stethoscope, Syringe, TrendingUp, Utensils } from "lucide-react";
+import { BellRing, Cake, Clock, MoonStar, PartyPopper, Sun, Sunrise, Sunset, CalendarDays, ClipboardList, ListTodo, MessageCircleQuestion, NotebookPen, ShoppingBag, Stethoscope, Syringe, TrendingUp, Utensils } from "lucide-react";
 import { TrendChart } from "@/components/trend-chart";
 import { TREND_SERIES, trendData } from "@/lib/trends";
 import { EventRow, type EventRowData } from "@/components/event-row";
 import { REMIND_DAYS, vetTypeLabel } from "@/lib/calendar";
 import { EXPENSE_CATEGORIES } from "@/lib/expenses";
-import { PetAvatar } from "@/components/pet-switcher";
 import { ProgressRing } from "@/components/progress-ring";
 import { QuickAdd } from "@/components/quick-add";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
@@ -24,7 +23,7 @@ import {
 } from "@/lib/format";
 import { getDayItems } from "@/lib/day-items";
 import { getWeights } from "@/lib/health";
-import { petPhotoUrl, requireCurrentPet } from "@/lib/pets";
+import { requireCurrentPet } from "@/lib/pets";
 import { createClient } from "@/lib/supabase/server";
 
 type Reminder = {
@@ -177,6 +176,14 @@ export default async function DashboardPage() {
   const nowHm = new Intl.DateTimeFormat("hu-HU", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Budapest" }).format(new Date());
   const hour = Number(nowHm.slice(0, 2));
   const greeting = hour >= 5 && hour < 10 ? "Jó reggelt" : hour < 18 && hour >= 10 ? "Szép napot" : hour >= 18 && hour < 22 ? "Jó estét" : "Jó éjszakát";
+  const [DayIcon, dayIconColor] =
+    hour >= 5 && hour < 10
+      ? [Sunrise, "var(--series-4)"]
+      : hour >= 10 && hour < 18
+        ? [Sun, "var(--series-4)"]
+        : hour >= 18 && hour < 22
+          ? [Sunset, "var(--series-2)"]
+          : [MoonStar, "var(--link)"];
   const next = items.find((i) => i.status === null && i.time !== "–" && i.time >= nowHm);
 
   const dateLabel = new Intl.DateTimeFormat("hu-HU", {
@@ -189,7 +196,9 @@ export default async function DashboardPage() {
   return (
     <div className="wide flex flex-col gap-6">
       <div className="flex items-center gap-4 rounded-3xl bg-primary-soft p-4 sm:p-5">
-        <PetAvatar name={pet.name} photoUrl={petPhotoUrl(pet.photo_path)} size={64} />
+        <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-surface" aria-hidden="true">
+          <DayIcon size={34} style={{ color: dayIconColor }} />
+        </span>
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">
             {greeting}, {pet.name}!
