@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, FileText, Scale, ShieldAlert, Stethoscope, Syringe, UserRound } from "lucide-react";
+import { ChevronRight, FileText, Pill, Scale, ShieldAlert, Stethoscope, Syringe, UserRound } from "lucide-react";
 import { PetAvatar } from "@/components/pet-switcher";
 import { Card, PageHeader } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
@@ -39,6 +39,7 @@ export default async function HealthPage() {
   ];
 
   const sections = [
+    { href: "/gyogyszerek", label: "Gyógyszerek és kiegészítők", icon: Pill, meta: "Ütemezés, vásárlások" },
     { href: "/egeszseg/suly", label: "Súly", icon: Scale, meta: "Mérések és diagram" },
     {
       href: "/egeszseg/allergiak",

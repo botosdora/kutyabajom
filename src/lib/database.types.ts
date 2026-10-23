@@ -90,6 +90,98 @@ export type Database = {
           },
         ]
       }
+      dose_logs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          given_at: string | null
+          id: string
+          medication_id: string
+          note: string | null
+          pet_id: string
+          scheduled_for: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          given_at?: string | null
+          id?: string
+          medication_id: string
+          note?: string | null
+          pet_id: string
+          scheduled_for: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          given_at?: string | null
+          id?: string
+          medication_id?: string
+          note?: string | null
+          pet_id?: string
+          scheduled_for?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dose_logs_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dose_logs_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meal_logs: {
+        Row: {
+          created_by: string | null
+          day: string
+          id: string
+          logged_at: string
+          meal: string
+          note: string | null
+          pet_id: string
+          status: string
+        }
+        Insert: {
+          created_by?: string | null
+          day: string
+          id?: string
+          logged_at?: string
+          meal: string
+          note?: string | null
+          pet_id: string
+          status: string
+        }
+        Update: {
+          created_by?: string | null
+          day?: string
+          id?: string
+          logged_at?: string
+          meal?: string
+          note?: string | null
+          pet_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_logs_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_events: {
         Row: {
           created_at: string
@@ -141,6 +233,119 @@ export type Database = {
           },
         ]
       }
+      medication_purchases: {
+        Row: {
+          cost_huf: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          medication_id: string
+          notes: string | null
+          pet_id: string
+          purchased_on: string
+          quantity: string | null
+        }
+        Insert: {
+          cost_huf?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          medication_id: string
+          notes?: string | null
+          pet_id: string
+          purchased_on?: string
+          quantity?: string | null
+        }
+        Update: {
+          cost_huf?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          medication_id?: string
+          notes?: string | null
+          pet_id?: string
+          purchased_on?: string
+          quantity?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_purchases_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_purchases_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medications: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          created_by: string | null
+          dosage: string | null
+          end_date: string | null
+          id: string
+          interval_days: number | null
+          name: string
+          notes: string | null
+          pet_id: string
+          reorder_on: string | null
+          schedule_type: string
+          start_date: string
+          times: string[]
+        }
+        Insert: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          dosage?: string | null
+          end_date?: string | null
+          id?: string
+          interval_days?: number | null
+          name: string
+          notes?: string | null
+          pet_id: string
+          reorder_on?: string | null
+          schedule_type?: string
+          start_date: string
+          times?: string[]
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          dosage?: string | null
+          end_date?: string | null
+          id?: string
+          interval_days?: number | null
+          name?: string
+          notes?: string | null
+          pet_id?: string
+          reorder_on?: string | null
+          schedule_type?: string
+          start_date?: string
+          times?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medications_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pet_members: {
         Row: {
           created_at: string
@@ -173,10 +378,12 @@ export type Database = {
       pets: {
         Row: {
           birth_date: string | null
+          breakfast_time: string
           breed: string | null
           chip_number: string | null
           created_at: string
           created_by: string | null
+          dinner_time: string
           id: string
           name: string
           notes: string | null
@@ -184,10 +391,12 @@ export type Database = {
         }
         Insert: {
           birth_date?: string | null
+          breakfast_time?: string
           breed?: string | null
           chip_number?: string | null
           created_at?: string
           created_by?: string | null
+          dinner_time?: string
           id?: string
           name: string
           notes?: string | null
@@ -195,10 +404,12 @@ export type Database = {
         }
         Update: {
           birth_date?: string | null
+          breakfast_time?: string
           breed?: string | null
           chip_number?: string | null
           created_at?: string
           created_by?: string | null
+          dinner_time?: string
           id?: string
           name?: string
           notes?: string | null
@@ -405,6 +616,20 @@ export type Database = {
           user_id: string
         }[]
       }
+      scheduled_doses: {
+        Args: { p_from: string; p_pet_id: string; p_to: string }
+        Returns: {
+          category: string
+          day: string
+          dosage: string
+          given_at: string
+          log_id: string
+          medication_id: string
+          name: string
+          scheduled_for: string
+          status: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
@@ -537,4 +762,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

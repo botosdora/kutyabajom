@@ -52,6 +52,8 @@ export async function updatePet(_: ActionResult, formData: FormData): Promise<Ac
       birth_date: optional(formData, "birth_date"),
       chip_number: optional(formData, "chip_number"),
       notes: optional(formData, "notes"),
+      breakfast_time: String(formData.get("breakfast_time") || "08:00"),
+      dinner_time: String(formData.get("dinner_time") || "18:00"),
     })
     .eq("id", String(formData.get("pet_id")));
   if (error) return { error: "Nem sikerült menteni." };
