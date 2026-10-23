@@ -1,0 +1,10 @@
+<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#1c2230">
+  <p style="font-size:22px;font-weight:bold;color:#3346c9">kutyabajom</p>
+  <h2>Üdv a Kutyabajomban!</h2>
+  <p>Kattints az alábbi gombra a regisztrációd megerősítéséhez.</p>
+  <p>
+    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email"
+       style="display:inline-block;background:#3346c9;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:bold">Regisztráció megerősítése</a>
+  </p>
+  <p style="color:#5b6275;font-size:13px">Ha nem te kérted, nyugodtan hagyd figyelmen kívül ezt a levelet.</p>
+</div>
