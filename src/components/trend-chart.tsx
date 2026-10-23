@@ -39,10 +39,10 @@ export function TrendChart({ data, series, height = 240 }: { data: TrendPoint[];
       </div>
       <div style={{ height }} role="img" aria-label={`${visible.map((s) => s.label).join(", ")} változása`}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -24 }}>
+          <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
             <CartesianGrid vertical={false} stroke="var(--grid)" />
             <XAxis dataKey="label" tick={axisTick} tickLine={false} axisLine={false} minTickGap={28} />
-            <YAxis domain={[0, 10]} ticks={[0, 5, 10]} tick={axisTick} tickLine={false} axisLine={false} width={40} />
+            <YAxis domain={[0, 10]} ticks={[0, 5, 10]} tick={axisTick} tickLine={false} axisLine={false} width={36} />
             <Tooltip content={<ChartTooltip />} cursor={{ stroke: "var(--border-strong)", strokeDasharray: "4 4" }} />
             {visible.map((s) => (
               <Line

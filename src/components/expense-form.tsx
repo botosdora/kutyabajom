@@ -14,6 +14,7 @@ export function ExpenseForm({
   foods,
   medicalEvents,
   today,
+  defaultOpen = false,
 }: {
   action: FormAction;
   petId: string;
@@ -22,6 +23,7 @@ export function ExpenseForm({
   foods: Option[];
   medicalEvents: Option[];
   today: string;
+  defaultOpen?: boolean;
 }) {
   const [category, setCategory] = useState("allatorvos");
   const [medicationId, setMedicationId] = useState("");
@@ -29,7 +31,7 @@ export function ExpenseForm({
   const isMedPurchase = (category === "gyogyszer" && medicationId !== "") || (category === "etel" && foodId !== "");
 
   return (
-    <AddPanel label="Új kiadás" action={action}>
+    <AddPanel label="Új kiadás" action={action} defaultOpen={defaultOpen}>
       <input type="hidden" name="pet_id" value={petId} />
       <div className="grid grid-cols-2 gap-3">
         <Select label="Kategória" name="category" value={category} onChange={(e) => setCategory(e.target.value)} options={categories} />

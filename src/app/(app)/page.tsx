@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { BellRing, Cake, CalendarDays, ClipboardList, ListTodo, MessageCircleQuestion, NotebookPen, ShoppingBag, Stethoscope, Syringe, TrendingUp, Utensils } from "lucide-react";
+import { BellRing, Cake, Clock, PartyPopper, CalendarDays, ClipboardList, ListTodo, MessageCircleQuestion, NotebookPen, ShoppingBag, Stethoscope, Syringe, TrendingUp, Utensils } from "lucide-react";
 import { TrendChart } from "@/components/trend-chart";
 import { TREND_SERIES, trendData } from "@/lib/trends";
 import { EventRow, type EventRowData } from "@/components/event-row";
 import { REMIND_DAYS, vetTypeLabel } from "@/lib/calendar";
 import { EXPENSE_CATEGORIES } from "@/lib/expenses";
-import { AddPanel } from "@/components/forms";
-import { Card, EmptyState, Field, SectionTitle } from "@/components/ui";
+import { PetAvatar } from "@/components/pet-switcher";
+import { ProgressRing } from "@/components/progress-ring";
+import { QuickAdd } from "@/components/quick-add";
+import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { addQuickTask } from "./naptar/actions";
 import { TodayList } from "@/components/today-list";
 import { WeightChart } from "@/components/weight-chart";
@@ -22,7 +24,7 @@ import {
 } from "@/lib/format";
 import { getDayItems } from "@/lib/day-items";
 import { getWeights } from "@/lib/health";
-import { requireCurrentPet } from "@/lib/pets";
+import { petPhotoUrl, requireCurrentPet } from "@/lib/pets";
 import { createClient } from "@/lib/supabase/server";
 
 type Reminder = {
@@ -171,6 +173,12 @@ export default async function DashboardPage() {
   const birthdayYears = years(pet.birth_date);
   const adoptionYears = years(pet.adoption_date);
 
+  // Napszakhoz illő köszöntés és a következő, még el nem végzett teendő (budapesti idő szerint).
+  const nowHm = new Intl.DateTimeFormat("hu-HU", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Budapest" }).format(new Date());
+  const hour = Number(nowHm.slice(0, 2));
+  const greeting = hour >= 5 && hour < 10 ? "Jó reggelt" : hour < 18 && hour >= 10 ? "Szép napot" : hour >= 18 && hour < 22 ? "Jó estét" : "Jó éjszakát";
+  const next = items.find((i) => i.status === null && i.time !== "–" && i.time >= nowHm);
+
   const dateLabel = new Intl.DateTimeFormat("hu-HU", {
     weekday: "long",
     month: "long",
@@ -180,9 +188,22 @@ export default async function DashboardPage() {
 
   return (
     <div className="wide flex flex-col gap-6">
-      <div>
-        <p className="text-sm font-medium text-text-muted first-letter:uppercase">{dateLabel}</p>
-        <h1 className="text-2xl font-bold tracking-tight">Mai áttekintés</h1>
+      <div className="flex items-center gap-4 rounded-3xl bg-primary-soft p-4 sm:p-5">
+        <PetAvatar name={pet.name} photoUrl={petPhotoUrl(pet.photo_path)} size={64} />
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight">
+            {greeting}, {pet.name}!
+          </h1>
+          <p className="text-sm font-medium text-text-muted first-letter:uppercase">{dateLabel}</p>
+          {next && (
+            <p className="mt-1 flex items-center gap-1.5 text-sm">
+              <Clock size={15} className="shrink-0 text-link" aria-hidden="true" />
+              <span className="truncate">
+                Következő: <b>{next.time}</b> · {next.title}
+              </span>
+            </p>
+          )}
+        </div>
       </div>
 
       {(birthdayYears !== null || adoptionYears !== null) && (
@@ -203,27 +224,19 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         <section>
-          <SectionTitle
-            icon={ListTodo}
-            action={
-              <span className="text-sm text-text-muted">
-                {doneCount} / {items.length}
-              </span>
-            }
-          >
+          <SectionTitle icon={ListTodo} action={<ProgressRing done={doneCount} total={items.length} />}>
             Teendők
           </SectionTitle>
-          <TodayList items={items} petId={pet.id} day={today} />
-        <div className="mt-2">
-          <AddPanel label="Saját teendő mára" action={addQuickTask}>
-            <input type="hidden" name="pet_id" value={pet.id} />
-            <div className="grid grid-cols-[1fr_auto] gap-3">
-              <Field label="Teendő" name="title" placeholder="pl. fülcsepp, karomvágás" required />
-              <Field label="Időpont" name="event_time" type="time" />
+          {items.length > 0 && doneCount === items.length && (
+            <div className="mb-3 flex items-center gap-3 rounded-2xl bg-success-soft px-4 py-3 text-success">
+              <PartyPopper size={22} aria-hidden="true" />
+              <span className="text-sm font-semibold">Minden kész mára! Ügyesek vagytok.</span>
             </div>
-            <p className="text-xs text-text-muted">A naptárba is bekerül feladatként.</p>
-          </AddPanel>
-        </div>
+          )}
+          <TodayList items={items} petId={pet.id} day={today} isToday />
+          <div className="mt-1">
+            <QuickAdd action={addQuickTask} petId={pet.id} />
+          </div>
           <Link href="/gyogyszerek" className="mt-2 inline-block text-sm font-medium text-link">
             Gyógyszerek kezelése →
           </Link>

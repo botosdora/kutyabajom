@@ -69,12 +69,14 @@ export function AddPanel({
   label,
   action,
   children,
+  defaultOpen = false,
 }: {
   label: string;
   action: FormAction;
   children: ReactNode;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)} className={buttonClass("secondary", "w-full")}>

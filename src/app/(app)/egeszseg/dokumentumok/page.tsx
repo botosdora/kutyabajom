@@ -11,9 +11,9 @@ import { requireCurrentPet } from "@/lib/pets";
 
 export const metadata = { title: "Dokumentumok" };
 
-export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ tipus?: string; cimke?: string; db?: string }> }) {
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ tipus?: string; cimke?: string; db?: string; uj?: string }> }) {
   const pet = await requireCurrentPet();
-  const { tipus, cimke, db } = await searchParams;
+  const { tipus, cimke, db, uj } = await searchParams;
   const limit = pageLimit(db);
   const supabase = await createClient();
 
@@ -55,6 +55,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           supabaseKey={supabaseKey}
           docTypes={DOC_TYPES}
           today={todayIso()}
+          defaultOpen={uj === "1"}
           events={[
             { value: "", label: "– egyikhez sem –" },
             ...(events ?? []).map((e) => ({ value: e.id, label: `${e.title} (${formatDate(e.event_date)})` })),

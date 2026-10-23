@@ -10,9 +10,10 @@ import { addWeight, deleteRecord } from "../actions";
 
 export const metadata = { title: "Súly" };
 
-export default async function WeightPage({ searchParams }: { searchParams: Promise<{ db?: string }> }) {
+export default async function WeightPage({ searchParams }: { searchParams: Promise<{ db?: string; uj?: string }> }) {
   const pet = await requireCurrentPet();
-  const limit = pageLimit((await searchParams).db);
+  const { db, uj } = await searchParams;
+  const limit = pageLimit(db);
   const weights = await getWeights(pet.id);
 
   return (
@@ -24,7 +25,7 @@ export default async function WeightPage({ searchParams }: { searchParams: Promi
       </Card>
 
       <div className="mb-6">
-        <AddPanel label="Új mérés" action={addWeight}>
+        <AddPanel label="Új mérés" action={addWeight} defaultOpen={uj === "1"}>
           <input type="hidden" name="pet_id" value={pet.id} />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Dátum" name="measured_on" type="date" defaultValue={todayIso()} required />

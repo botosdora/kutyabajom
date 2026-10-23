@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Check, ClipboardList, Clock, MoreHorizontal, Pill, Utensils, X } from "lucide-react";
 import { logDose, logMeal, undoDose, undoMeal } from "@/app/(app)/today-actions";
@@ -56,7 +56,7 @@ function isDone(status: TodayItem["status"]) {
   return status === "given" || status === "eaten" || status === "partial" || status === "done";
 }
 
-function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: string }) {
+function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petId: string; day: string; hideTime?: boolean }) {
   const [open, setOpen] = useState(false);
   const [showTime, setShowTime] = useState(false);
   const [time, setTime] = useState(item.time);
@@ -125,11 +125,10 @@ function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: st
             {item.title}
           </p>
           <p className="truncate text-xs text-text-muted">
-            {item.time}
-            {item.detail && ` · ${item.detail}`}
+            {[!hideTime && item.time, item.detail].filter(Boolean).join(" · ")}
             {statusText && (
               <span className={done ? "text-success" : "text-danger"}>
-                {" · "}
+                {(!hideTime || item.detail) && " · "}
                 {statusText}
                 {item.doneAt && ` ${item.doneAt}`}
               </span>
@@ -225,15 +224,99 @@ function OptionButton({ onClick, children }: { onClick: () => void; children: Re
   );
 }
 
-export function TodayList({ items, petId, day }: { items: TodayItem[]; petId: string; day: string }) {
+// Az aktuális budapesti idő "HH:MM" formában (a "Most" jelölőhöz).
+function nowTime() {
+  return new Intl.DateTimeFormat("hu-HU", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Budapest" }).format(new Date());
+}
+
+// Idővonal: időpontonként egy csoport, az azonos időpontú teendők egy kártyában.
+// A mai napon a "Most" jelölő mutatja, hol tartunk.
+export function TodayList({
+  items,
+  petId,
+  day,
+  isToday = false,
+}: {
+  items: TodayItem[];
+  petId: string;
+  day: string;
+  isToday?: boolean;
+}) {
+  const [now, setNow] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isToday) return;
+    // Az órát csak a böngészőben olvassuk (a szerveren renderelt idő elavulhat).
+    const tick = () => setNow(nowTime());
+    const first = setTimeout(tick, 0);
+    const timer = setInterval(tick, 60_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+  }, [isToday]);
+
   if (items.length === 0) {
     return <p className="rounded-2xl border border-dashed border-border-strong px-4 py-6 text-center text-sm text-text-muted">Erre a napra nincs teendő.</p>;
   }
+
+  const groups: { time: string; items: TodayItem[] }[] = [];
+  for (const item of items) {
+    const last = groups[groups.length - 1];
+    if (last && last.time === item.time) last.items.push(item);
+    else groups.push({ time: item.time, items: [item] });
+  }
+  // A "Most" jelölő az első még hátralévő időpont elé kerül.
+  const nowIndex = now ? groups.findIndex((g) => g.time !== "–" && g.time > now) : -1;
+
   return (
-    <ul className="rounded-2xl border border-border bg-surface px-1">
-      {items.map((item) => (
-        <TaskRow key={item.key} item={item} petId={petId} day={day} />
-      ))}
-    </ul>
+    <ol className="relative">
+      <span aria-hidden="true" className="absolute bottom-3 left-[63px] top-3 w-0.5 rounded-full bg-border" />
+      {groups.map((g, i) => {
+        const allDone = g.items.every((it) => it.status !== null);
+        const past = now !== null && g.time !== "–" && g.time <= now;
+        return (
+          <li key={`${g.time}-${i}`} className="relative">
+            {i === nowIndex && <NowMarker time={now!} />}
+            <div className="flex gap-2 pb-3">
+              <div className="w-12 shrink-0 pt-4 text-right">
+                <span
+                  className={`text-sm font-semibold tabular-nums ${past && !allDone ? "text-danger" : allDone ? "text-text-muted" : ""} ${
+                    g.time === "–" ? "text-xs" : ""
+                  }`}
+                >
+                  {g.time === "–" ? "Bármikor" : g.time}
+                </span>
+              </div>
+              <div className="relative w-4 shrink-0" aria-hidden="true">
+                <span
+                  className={`absolute left-[2px] top-[1.15rem] size-3 rounded-full ring-4 ring-bg ${
+                    allDone ? "bg-success" : past ? "bg-danger" : "bg-primary"
+                  }`}
+                />
+              </div>
+              <ul className="min-w-0 flex-1 rounded-2xl border border-border bg-surface px-1">
+                {g.items.map((item) => (
+                  <TaskRow key={item.key} item={item} petId={petId} day={day} hideTime />
+                ))}
+              </ul>
+            </div>
+          </li>
+        );
+      })}
+      {now && nowIndex === -1 && <NowMarker time={now} />}
+    </ol>
+  );
+}
+
+function NowMarker({ time }: { time: string }) {
+  return (
+    <div className="relative mb-3 flex items-center gap-2" aria-label={`Most: ${time}`}>
+      <span className="w-12 shrink-0 text-right text-xs font-bold text-link">Most</span>
+      <span className="relative flex w-4 shrink-0 justify-center" aria-hidden="true">
+        <span className="size-3 rounded-full bg-primary ring-4 ring-primary-soft" />
+      </span>
+      <span aria-hidden="true" className="h-0.5 flex-1 rounded-full bg-primary" />
+      <span className="text-xs font-semibold tabular-nums text-link">{time}</span>
+    </div>
   );
 }

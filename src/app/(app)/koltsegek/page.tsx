@@ -43,10 +43,10 @@ const PERIODS = [
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ idoszak?: string; tol?: string; ig?: string; db?: string }>;
+  searchParams: Promise<{ idoszak?: string; tol?: string; ig?: string; db?: string; uj?: string }>;
 }) {
   const pet = await requireCurrentPet();
-  const { idoszak = "honap", tol, ig, db } = await searchParams;
+  const { idoszak = "honap", tol, ig, db, uj } = await searchParams;
   const limit = pageLimit(db);
   const today = todayIso();
   const range = periodRange(idoszak, today, tol, ig);
@@ -132,6 +132,7 @@ export default async function ExpensesPage({
           foods={(foods ?? []).map((f) => ({ value: f.id, label: f.name }))}
           medicalEvents={(events ?? []).map((e) => ({ value: e.id, label: `${e.title} (${formatDate(e.event_date)})` }))}
           today={today}
+          defaultOpen={uj === "1"}
         />
       </div>
 

@@ -21,6 +21,7 @@ export function DocumentUpload({
   medicalEventId,
   events,
   defaultTags,
+  defaultOpen = false,
 }: {
   petId: string;
   supabaseUrl: string;
@@ -30,8 +31,9 @@ export function DocumentUpload({
   medicalEventId?: string;
   events?: Option[];
   defaultTags?: string;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [stage, setStage] = useState<string | null>(null);

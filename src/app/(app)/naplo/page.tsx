@@ -70,7 +70,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
         <p className="mb-2 text-sm text-text-muted">
           {day === today ? "Itt is kipipálhatod a mai teendőket." : "Utólag is rögzítheted: mi ment be, mi maradt ki."}
         </p>
-        <TodayList items={dayItems.items} petId={pet.id} day={day} />
+        <TodayList items={dayItems.items} petId={pet.id} day={day} isToday={day === today} />
       </section>
 
       <SectionTitle icon={NotebookPen}>Megfigyelések</SectionTitle>
