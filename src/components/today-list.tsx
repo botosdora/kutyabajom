@@ -125,7 +125,7 @@ function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: st
       {open && (
         <div className="mb-3 ml-14 flex flex-col gap-2">
           {logged ? (
-            <button type="button" onClick={undo} className="h-10 self-start rounded-lg px-3 text-sm font-semibold text-primary hover:bg-surface-muted">
+            <button type="button" onClick={undo} className="h-10 self-start rounded-lg px-3 text-sm font-semibold text-link hover:bg-surface-muted">
               Visszavonás
             </button>
           ) : (

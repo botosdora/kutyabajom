@@ -2,7 +2,8 @@
 
 import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
-import { buttonClass, type ButtonVariant } from "@/components/ui";
+import { Alert, buttonClass, type ButtonVariant } from "@/components/ui";
+import { useToast } from "@/components/toast";
 
 export type ActionResult = { error?: string; message?: string } | null;
 export type FormAction = (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
@@ -26,41 +27,38 @@ export function SubmitButton({
   );
 }
 
-// Űrlap, amely kiírja a szerveroldali hibát vagy visszajelzést.
+// Űrlap: a hibát dobozban mutatja, a sikeres mentést felugró üzenettel jelzi.
+// `persistentMessage` esetén a visszajelzés az űrlapon marad (pl. "Küldtünk egy e-mailt").
 export function ActionForm({
   action,
   children,
   className = "flex flex-col gap-4",
   onSuccess,
+  persistentMessage = false,
 }: {
   action: FormAction;
   children: ReactNode;
   className?: string;
   onSuccess?: () => void;
+  persistentMessage?: boolean;
 }) {
   const [state, formAction] = useActionState(action, null);
   const handled = useRef<ActionResult>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (state && !state.error && handled.current !== state) {
       handled.current = state;
+      if (state.message && !persistentMessage) toast(state.message);
       onSuccess?.();
     }
-  }, [state, onSuccess]);
+  }, [state, onSuccess, toast, persistentMessage]);
 
   return (
     <form action={formAction} className={className}>
       {children}
-      {state?.error && (
-        <p role="alert" className="text-sm font-medium text-danger">
-          {state.error}
-        </p>
-      )}
-      {state?.message && (
-        <p role="status" className="text-sm font-medium text-success">
-          {state.message}
-        </p>
-      )}
+      {state?.error && <Alert kind="error">{state.error}</Alert>}
+      {persistentMessage && state?.message && <Alert kind="success">{state.message}</Alert>}
     </form>
   );
 }

@@ -9,7 +9,7 @@ export default function SignupPage() {
   return (
     <>
       <h1 className="mb-6 text-2xl font-bold tracking-tight">Regisztráció</h1>
-      <ActionForm action={signup}>
+      <ActionForm persistentMessage action={signup}>
         <Field label="Neved" name="full_name" autoComplete="name" required />
         <Field label="E-mail cím" name="email" type="email" autoComplete="email" required />
         <Field
@@ -26,7 +26,7 @@ export default function SignupPage() {
       </ActionForm>
       <p className="mt-6 text-center text-sm text-text-muted">
         Van már fiókod?{" "}
-        <Link href="/belepes" className="font-semibold text-primary hover:text-primary-hover">
+        <Link href="/belepes" className="font-semibold text-link hover:opacity-80">
           Belépés
         </Link>
       </p>

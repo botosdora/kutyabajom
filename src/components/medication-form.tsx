@@ -12,6 +12,30 @@ const SCHEDULE_TYPES = [
   { value: "course", label: "Kúra" },
 ];
 
+const COURSE_PRESETS = [
+  { label: "1 hét", days: 7 },
+  { label: "2 hét", days: 14 },
+  { label: "1 hónap", months: 1 },
+  { label: "3 hónap", months: 3 },
+  { label: "6 hónap", months: 6 },
+];
+
+// A kúra utolsó napja: a kezdéstől számított időtartam előtti nap
+// (pl. 1 hónap 11.01-től → 11.30.).
+function addToDate(start: string, preset: { days?: number; months?: number }) {
+  const d = new Date(`${start}T12:00:00Z`);
+  if (preset.months) {
+    const day = d.getUTCDate();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() + preset.months);
+    const lastDay = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+    d.setUTCDate(Math.min(day, lastDay));
+  }
+  if (preset.days) d.setUTCDate(d.getUTCDate() + preset.days);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 export function MedicationForm({
   action,
   petId,
@@ -29,6 +53,8 @@ export function MedicationForm({
 }) {
   const [scheduleType, setScheduleType] = useState(medication?.schedule_type ?? "recurring");
   const [times, setTimes] = useState<string[]>(medication?.times.map((t) => t.slice(0, 5)) ?? ["08:00"]);
+  const [startDate, setStartDate] = useState(medication?.start_date ?? today);
+  const [endDate, setEndDate] = useState(medication?.end_date ?? "");
 
   return (
     <ActionForm action={action}>
@@ -48,7 +74,7 @@ export function MedicationForm({
             <label
               key={t.value}
               className={`flex h-10 cursor-pointer items-center justify-center rounded-lg text-sm font-semibold ${
-                scheduleType === t.value ? "bg-surface text-primary shadow-sm" : "text-text-muted"
+                scheduleType === t.value ? "bg-surface text-link shadow-sm" : "text-text-muted"
               }`}
             >
               <input
@@ -70,11 +96,20 @@ export function MedicationForm({
           label={scheduleType === "once" ? "Dátum" : "Kezdés"}
           name="start_date"
           type="date"
-          defaultValue={medication?.start_date ?? today}
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
           required
         />
         {scheduleType === "course" && (
-          <Field label="Befejezés" name="end_date" type="date" defaultValue={medication?.end_date ?? ""} required />
+          <Field
+            label="Befejezés"
+            name="end_date"
+            type="date"
+            value={endDate}
+            min={startDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            required
+          />
         )}
         {scheduleType !== "once" && (
           <Field
@@ -87,6 +122,21 @@ export function MedicationForm({
           />
         )}
       </div>
+
+      {scheduleType === "course" && startDate && (
+        <div className="-mt-2 flex flex-wrap gap-2" aria-label="Kúra hossza">
+          {COURSE_PRESETS.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => setEndDate(addToDate(startDate, p))}
+              className="h-9 rounded-full border border-border-strong px-3 text-sm font-medium hover:bg-surface-muted"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1.5 text-sm font-medium">Időpont(ok) aznap</legend>
@@ -116,7 +166,7 @@ export function MedicationForm({
         <button
           type="button"
           onClick={() => setTimes([...times, "20:00"])}
-          className="flex h-10 items-center gap-1 self-start rounded-lg px-2 text-sm font-semibold text-primary hover:bg-surface-muted"
+          className="flex h-10 items-center gap-1 self-start rounded-lg px-2 text-sm font-semibold text-link hover:bg-surface-muted"
         >
           <Plus size={16} aria-hidden="true" /> Még egy időpont
         </button>

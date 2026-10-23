@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 
 // Egyszerű, közös felületi elemek. Szándékosan kevés változat.
 
@@ -98,7 +99,7 @@ export function PageHeader({
   return (
     <div className="mb-5 flex flex-col gap-1">
       {back && (
-        <Link href={back.href} className="mb-1 text-sm font-medium text-primary hover:text-primary-hover">
+        <Link href={back.href} className="mb-1 text-sm font-medium text-link hover:opacity-80">
           ← {back.label}
         </Link>
       )}
@@ -127,5 +128,21 @@ export function EmptyState({ children }: { children: ReactNode }) {
     <p className="rounded-2xl border border-dashed border-border-strong px-4 py-6 text-center text-sm text-text-muted">
       {children}
     </p>
+  );
+}
+
+const alertStyles = {
+  error: { box: "bg-danger-soft text-danger", icon: AlertCircle },
+  success: { box: "bg-success-soft text-success", icon: CheckCircle2 },
+  info: { box: "bg-primary-soft text-link", icon: Info },
+};
+
+export function Alert({ kind = "info", children }: { kind?: keyof typeof alertStyles; children: ReactNode }) {
+  const { box, icon: Icon } = alertStyles[kind];
+  return (
+    <div role={kind === "error" ? "alert" : "status"} className={`flex items-start gap-2.5 rounded-xl px-3.5 py-3 text-sm font-medium ${box}`}>
+      <Icon size={18} className="mt-px shrink-0" aria-hidden="true" />
+      <span>{children}</span>
+    </div>
   );
 }

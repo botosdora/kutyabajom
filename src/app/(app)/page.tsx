@@ -106,94 +106,102 @@ export default async function DashboardPage() {
   }).format(new Date());
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="wide flex flex-col gap-6">
       <div>
         <p className="text-sm font-medium text-text-muted first-letter:uppercase">{dateLabel}</p>
         <h1 className="text-2xl font-bold tracking-tight">Mai áttekintés</h1>
       </div>
 
-      <section>
-        <SectionTitle
-          action={
-            <span className="text-sm text-text-muted">
-              {doneCount} / {items.length}
-            </span>
-          }
-        >
-          Teendők
-        </SectionTitle>
-        <TodayList items={items} petId={pet.id} day={today} />
-        <Link href="/gyogyszerek" className="mt-2 inline-block text-sm font-medium text-primary">
-          Gyógyszerek kezelése →
-        </Link>
-      </section>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
+        <section>
+          <SectionTitle
+            action={
+              <span className="text-sm text-text-muted">
+                {doneCount} / {items.length}
+              </span>
+            }
+          >
+            Teendők
+          </SectionTitle>
+          <TodayList items={items} petId={pet.id} day={today} />
+          <Link href="/gyogyszerek" className="mt-2 inline-block text-sm font-medium text-link">
+            Gyógyszerek kezelése →
+          </Link>
+        </section>
 
-      <section>
-        <SectionTitle>Előttünk</SectionTitle>
-        {reminders.length ? (
-          <ul className="flex flex-col gap-2">
-            {reminders.map((r) => {
-              const Icon = r.icon === "reorder" ? ShoppingBag : Syringe;
-              const overdue = r.days < 0;
-              return (
-                <li key={r.key}>
-                  <Link
-                    href={r.href}
-                    className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${
-                      r.icon === "reorder" ? "bg-warn-soft" : "bg-primary-soft"
-                    }`}
-                  >
-                    <Icon
-                      size={22}
-                      className={r.icon === "reorder" ? "text-warn-text" : "text-primary"}
-                      aria-hidden="true"
-                    />
-                    <span className="flex-1">
-                      <span className="block text-sm font-semibold">{r.title}</span>
-                      <span className={`block text-xs ${overdue ? "font-semibold text-danger" : "text-text-muted"}`}>
-                        {inDaysLabel(r.days)} · {formatShortDate(r.date)}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <EmptyState>Nincs közelgő újravásárlás vagy lejáró oltás.</EmptyState>
-        )}
-      </section>
+        <div className="flex flex-col gap-6">
+          <section>
+            <SectionTitle>Előttünk</SectionTitle>
+            {reminders.length ? (
+              <ul className="flex flex-col gap-2">
+                {reminders.map((r) => {
+                  const Icon = r.icon === "reorder" ? ShoppingBag : Syringe;
+                  const overdue = r.days < 0;
+                  return (
+                    <li key={r.key}>
+                      <Link
+                        href={r.href}
+                        className={`flex items-center gap-3 rounded-2xl px-4 py-3 ${
+                          r.icon === "reorder" ? "bg-warn-soft" : "bg-primary-soft"
+                        }`}
+                      >
+                        <Icon
+                          size={22}
+                          className={r.icon === "reorder" ? "text-warn-text" : "text-link"}
+                          aria-hidden="true"
+                        />
+                        <span className="flex-1">
+                          <span className="block text-sm font-semibold">{r.title}</span>
+                          <span
+                            className={`block text-xs ${overdue ? "font-semibold text-danger" : "text-text-muted"}`}
+                          >
+                            {inDaysLabel(r.days)} · {formatShortDate(r.date)}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <EmptyState>Nincs közelgő újravásárlás vagy lejáró oltás.</EmptyState>
+            )}
+          </section>
 
-      <section>
-        <SectionTitle action={<span className="text-xs text-text-muted">utolsó mérések</span>}>Trendek</SectionTitle>
-        <Card>
-          <div className="flex items-baseline justify-between">
-            <p className="text-xs font-semibold uppercase text-text-muted">Súly</p>
-            <Link href="/egeszseg/suly" className="text-sm font-medium text-primary">
-              + Mérés
-            </Link>
-          </div>
-          {latest ? (
-            <>
-              <p className="text-2xl font-bold">{formatWeight(Number(latest.weight_kg))}</p>
-              {change !== null && (
-                <p className="text-xs font-semibold text-text-muted">
-                  {change > 0 ? "+" : change < 0 ? "−" : "±"}
-                  {formatWeight(Math.abs(change))} az elmúlt 30 napban
-                </p>
-              )}
-              <div className="mt-3">
-                <WeightChart data={weightSeries(weights)} height={160} />
+          <section>
+            <SectionTitle action={<span className="text-xs text-text-muted">utolsó mérések</span>}>
+              Trendek
+            </SectionTitle>
+            <Card>
+              <div className="flex items-baseline justify-between">
+                <p className="text-xs font-semibold uppercase text-text-muted">Súly</p>
+                <Link href="/egeszseg/suly" className="text-sm font-medium text-link">
+                  + Mérés
+                </Link>
               </div>
-            </>
-          ) : (
-            <p className="py-4 text-sm text-text-muted">Még nincs rögzített súly.</p>
-          )}
-        </Card>
-        <p className="mt-2 text-xs text-text-muted">
-          Az étvágy, a mozgás és a fájdalom trendje a napló elkészülte után (5. fázis) jelenik meg.
-        </p>
-      </section>
+              {latest ? (
+                <>
+                  <p className="text-2xl font-bold">{formatWeight(Number(latest.weight_kg))}</p>
+                  {change !== null && (
+                    <p className="text-xs font-semibold text-text-muted">
+                      {change > 0 ? "+" : change < 0 ? "−" : "±"}
+                      {formatWeight(Math.abs(change))} az elmúlt 30 napban
+                    </p>
+                  )}
+                  <div className="mt-3">
+                    <WeightChart data={weightSeries(weights)} height={160} />
+                  </div>
+                </>
+              ) : (
+                <p className="py-4 text-sm text-text-muted">Még nincs rögzített súly.</p>
+              )}
+            </Card>
+            <p className="mt-2 text-xs text-text-muted">
+              Az étvágy, a mozgás és a fájdalom trendje a napló elkészülte után (5. fázis) jelenik meg.
+            </p>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

@@ -66,7 +66,7 @@ export default async function HealthPage() {
           <PetAvatar name={pet.name} size={48} />
           <div className="flex-1">
             <p className="text-lg font-bold">{pet.name}</p>
-            <Link href="/kutya" className="text-sm font-medium text-primary hover:text-primary-hover">
+            <Link href="/kutya" className="text-sm font-medium text-link hover:opacity-80">
               Adatok szerkesztése
             </Link>
           </div>
@@ -88,7 +88,7 @@ export default async function HealthPage() {
               href={href}
               className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 hover:bg-surface-muted"
             >
-              <span className="flex size-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-primary-soft text-link">
                 <Icon size={20} aria-hidden="true" />
               </span>
               <span className="flex-1">

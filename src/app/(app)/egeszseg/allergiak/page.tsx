@@ -70,7 +70,7 @@ export default async function AllergiesPage() {
                   </p>
                 </div>
                 <form action={toggleCondition.bind(null, c.id, !c.active)}>
-                  <button type="submit" className="h-9 rounded-lg px-2 text-sm font-medium text-primary hover:bg-surface-muted">
+                  <button type="submit" className="h-9 rounded-lg px-2 text-sm font-medium text-link hover:bg-surface-muted">
                     {c.active ? "Elmúlt" : "Aktív"}
                   </button>
                 </form>

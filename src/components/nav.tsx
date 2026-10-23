@@ -31,7 +31,7 @@ export function BottomNav() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={`flex h-16 flex-col items-center justify-center gap-1 text-[11px] ${
-              active ? "font-semibold text-primary" : "font-medium text-text-muted"
+              active ? "font-semibold text-link" : "font-medium text-text-muted"
             }`}
           >
             <Icon size={22} strokeWidth={1.8} aria-hidden="true" />
@@ -56,7 +56,7 @@ export function SideNav() {
             aria-current={active ? "page" : undefined}
             className={`flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] ${
               active
-                ? "bg-primary-soft font-semibold text-primary"
+                ? "bg-primary-soft font-semibold text-link"
                 : "font-medium text-text-muted hover:bg-surface-muted hover:text-text"
             }`}
           >

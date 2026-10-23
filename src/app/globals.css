@@ -1,5 +1,54 @@
 @import "tailwindcss";
 
+/* Kiemelőszínek: mindegyikhez egy világos (-l) és egy sötét (-d) változat.
+   A "link" a háttéren olvasható szövegszín, a "primary" a gombok háttere. */
+:root,
+[data-accent="kek"] {
+  --a-l: #3346c9;
+  --a-l-hover: #24339a;
+  --a-l-soft: #eef0fc;
+  --a-d: #4c5ee6;
+  --a-d-hover: #6474f0;
+  --a-d-soft: #232a4d;
+  --a-d-link: #9aa6ff;
+}
+[data-accent="zsalya"] {
+  --a-l: #3f6b4f;
+  --a-l-hover: #2c4d38;
+  --a-l-soft: #e7f0e9;
+  --a-d: #3f7a53;
+  --a-d-hover: #4f8a63;
+  --a-d-soft: #1d2b22;
+  --a-d-link: #8fc7a0;
+}
+[data-accent="barack"] {
+  --a-l: #b4532a;
+  --a-l-hover: #8f3f1e;
+  --a-l-soft: #fbece4;
+  --a-d: #b85a30;
+  --a-d-hover: #c96a3f;
+  --a-d-soft: #3a2219;
+  --a-d-link: #f0a782;
+}
+[data-accent="lila"] {
+  --a-l: #6b3fc9;
+  --a-l-hover: #52309c;
+  --a-l-soft: #f1ebfc;
+  --a-d: #7650d6;
+  --a-d-hover: #8a68e0;
+  --a-d-soft: #2b2148;
+  --a-d-link: #c3aefb;
+}
+[data-accent="rozsa"] {
+  --a-l: #b8336a;
+  --a-l-hover: #8f2552;
+  --a-l-soft: #fbe9f0;
+  --a-d: #c23d74;
+  --a-d-hover: #d0588a;
+  --a-d-soft: #3d1d2a;
+  --a-d-link: #f5a3c4;
+}
+
 :root {
   --bg: #ffffff;
   --surface: #ffffff;
@@ -8,20 +57,25 @@
   --border-strong: #dde0e8;
   --text: #1c2230;
   --text-muted: #5b6275;
-  --primary: #3346c9;
-  --primary-hover: #24339a;
-  --primary-soft: #eef0fc;
+  --primary: var(--a-l);
+  --primary-hover: var(--a-l-hover);
+  --primary-soft: var(--a-l-soft);
+  --link: var(--a-l);
   --on-primary: #ffffff;
   --warn-soft: #fff4e0;
   --warn-text: #6e4a0e;
   --danger: #b42318;
+  --danger-soft: #fdecea;
   --success: #2e7a43;
+  --success-soft: #e8f5ec;
   --pain: #c2410c;
   color-scheme: light;
 }
 
+/* Sötét mód: ha a rendszer sötét és nincs kifejezetten világosra állítva,
+   vagy ha kifejezetten sötétre van állítva. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0f1218;
     --surface: #171b24;
     --surface-muted: #1f2430;
@@ -29,17 +83,40 @@
     --border-strong: #363d50;
     --text: #e7e9ef;
     --text-muted: #9aa1b2;
-    --primary: #4c5ee6;
-    --primary-hover: #6474f0;
-    --primary-soft: #232a4d;
-    --on-primary: #ffffff;
+    --primary: var(--a-d);
+    --primary-hover: var(--a-d-hover);
+    --primary-soft: var(--a-d-soft);
+    --link: var(--a-d-link);
     --warn-soft: #3a2e14;
     --warn-text: #f2c879;
     --danger: #f97066;
+    --danger-soft: #3b1a1a;
     --success: #6fcf8a;
+    --success-soft: #16301f;
     --pain: #fb923c;
     color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1218;
+  --surface: #171b24;
+  --surface-muted: #1f2430;
+  --border: #2a3040;
+  --border-strong: #363d50;
+  --text: #e7e9ef;
+  --text-muted: #9aa1b2;
+  --primary: var(--a-d);
+  --primary-hover: var(--a-d-hover);
+  --primary-soft: var(--a-d-soft);
+  --link: var(--a-d-link);
+  --warn-soft: #3a2e14;
+  --warn-text: #f2c879;
+  --danger: #f97066;
+  --danger-soft: #3b1a1a;
+  --success: #6fcf8a;
+  --success-soft: #16301f;
+  --pain: #fb923c;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -53,11 +130,14 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-soft: var(--primary-soft);
+  --color-link: var(--link);
   --color-on-primary: var(--on-primary);
   --color-warn-soft: var(--warn-soft);
   --color-warn-text: var(--warn-text);
   --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
   --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
   --color-pain: var(--pain);
   --font-sans: var(--font-inter), system-ui, sans-serif;
 }

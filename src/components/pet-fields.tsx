@@ -20,12 +20,6 @@ export function PetFields({ pet }: { pet?: Tables<"pets"> }) {
         <Field label="Születési dátum" name="birth_date" type="date" defaultValue={pet?.birth_date ?? ""} />
       </div>
       <Field label="Chipszám" name="chip_number" inputMode="numeric" defaultValue={pet?.chip_number ?? ""} />
-      {pet && (
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Reggeli ideje" name="breakfast_time" type="time" defaultValue={pet.breakfast_time.slice(0, 5)} required />
-          <Field label="Vacsora ideje" name="dinner_time" type="time" defaultValue={pet.dinner_time.slice(0, 5)} required />
-        </div>
-      )}
     </>
   );
 }

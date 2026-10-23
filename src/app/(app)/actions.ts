@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CURRENT_PET_COOKIE, requireUser } from "@/lib/pets";
+import { ACCENT_COOKIE, parseAccent, parseTheme, THEME_COOKIE } from "@/lib/appearance";
 import type { ActionResult } from "@/components/forms";
 import { optional } from "@/lib/form";
 
@@ -52,8 +53,6 @@ export async function updatePet(_: ActionResult, formData: FormData): Promise<Ac
       birth_date: optional(formData, "birth_date"),
       chip_number: optional(formData, "chip_number"),
       notes: optional(formData, "notes"),
-      breakfast_time: String(formData.get("breakfast_time") || "08:00"),
-      dinner_time: String(formData.get("dinner_time") || "18:00"),
     })
     .eq("id", String(formData.get("pet_id")));
   if (error) return { error: "Nem sikerült menteni." };
@@ -108,4 +107,28 @@ export async function updateProfile(_: ActionResult, formData: FormData): Promis
   if (error) return { error: "Nem sikerült menteni." };
   revalidatePath("/tobb");
   return { message: "Elmentve." };
+}
+
+export async function updateMealTimes(_: ActionResult, formData: FormData): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("pets")
+    .update({
+      breakfast_time: String(formData.get("breakfast_time") || "08:00"),
+      dinner_time: String(formData.get("dinner_time") || "18:00"),
+    })
+    .eq("id", String(formData.get("pet_id")));
+  if (error) return { error: "Nem sikerült menteni." };
+  revalidatePath("/", "layout");
+  return { message: "Elmentve." };
+}
+
+export async function setAppearance(formData: FormData) {
+  const store = await cookies();
+  const options = { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" as const };
+  const theme = formData.get("theme");
+  const accent = formData.get("accent");
+  if (typeof theme === "string") store.set(THEME_COOKIE, parseTheme(theme), options);
+  if (typeof accent === "string") store.set(ACCENT_COOKIE, parseAccent(accent), options);
+  revalidatePath("/", "layout");
 }

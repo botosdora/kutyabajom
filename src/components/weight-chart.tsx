@@ -48,6 +48,7 @@ export function WeightChart({ data, height = 200 }: { data: WeightPoint[]; heigh
             strokeWidth={2.5}
             dot={{ r: 3, fill: "var(--primary)" }}
             activeDot={{ r: 5 }}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>

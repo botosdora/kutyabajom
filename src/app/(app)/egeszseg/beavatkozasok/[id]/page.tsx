@@ -32,7 +32,7 @@ export default async function MedicalEventPage({ params }: { params: Promise<{ i
             <p className="mb-2 text-sm">
               <span className="font-semibold">Orvos:</span> {event.vets.name}
               {event.vets.phone && (
-                <a href={`tel:${event.vets.phone}`} className="ml-2 text-primary">
+                <a href={`tel:${event.vets.phone}`} className="ml-2 text-link">
                   {event.vets.phone}
                 </a>
               )}

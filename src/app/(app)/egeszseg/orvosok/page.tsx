@@ -45,12 +45,12 @@ export default async function VetsPage() {
               </div>
               <div className="flex flex-col gap-1 text-sm">
                 {v.phone && (
-                  <a href={`tel:${v.phone}`} className="flex items-center gap-2 text-primary">
+                  <a href={`tel:${v.phone}`} className="flex items-center gap-2 text-link">
                     <Phone size={16} aria-hidden="true" /> {v.phone}
                   </a>
                 )}
                 {v.email && (
-                  <a href={`mailto:${v.email}`} className="flex items-center gap-2 text-primary">
+                  <a href={`mailto:${v.email}`} className="flex items-center gap-2 text-link">
                     <Mail size={16} aria-hidden="true" /> {v.email}
                   </a>
                 )}
@@ -59,7 +59,7 @@ export default async function VetsPage() {
                     href={`https://maps.google.com/?q=${encodeURIComponent(v.address)}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-2 text-primary"
+                    className="flex items-center gap-2 text-link"
                   >
                     <MapPin size={16} aria-hidden="true" /> {v.address}
                   </a>

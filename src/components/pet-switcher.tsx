@@ -12,7 +12,7 @@ export function PetAvatar({ name, size = 32 }: { name: string; size?: number }) 
     <span
       aria-hidden="true"
       style={{ width: size, height: size, fontSize: size * 0.44 }}
-      className="flex shrink-0 items-center justify-center rounded-full bg-primary-soft font-bold text-primary"
+      className="flex shrink-0 items-center justify-center rounded-full bg-primary-soft font-bold text-link"
     >
       {name.charAt(0).toUpperCase()}
     </span>
@@ -36,7 +36,7 @@ export function PetSwitcher({ pets, currentId }: { pets: PetOption[]; currentId:
 
   if (!current) {
     return (
-      <Link href="/kutyak/uj" className="text-[15px] font-semibold text-primary">
+      <Link href="/kutyak/uj" className="text-[15px] font-semibold text-link">
         + Kutya hozzáadása
       </Link>
     );
@@ -76,14 +76,14 @@ export function PetSwitcher({ pets, currentId }: { pets: PetOption[]; currentId:
             >
               <PetAvatar name={p.name} size={28} />
               <span className="flex-1">{p.name}</span>
-              {p.id === currentId && <Check size={16} className="text-primary" aria-hidden="true" />}
+              {p.id === currentId && <Check size={16} className="text-link" aria-hidden="true" />}
             </button>
           ))}
           <Link
             role="menuitem"
             href="/kutyak/uj"
             onClick={() => setOpen(false)}
-            className="flex h-11 items-center gap-2 rounded-xl px-2 text-[15px] font-medium text-primary hover:bg-surface-muted"
+            className="flex h-11 items-center gap-2 rounded-xl px-2 text-[15px] font-medium text-link hover:bg-surface-muted"
           >
             <Plus size={18} aria-hidden="true" className="mx-[5px]" />
             Új kutya

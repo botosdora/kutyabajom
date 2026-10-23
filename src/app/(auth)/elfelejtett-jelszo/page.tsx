@@ -10,11 +10,11 @@ export default function ForgotPasswordPage() {
     <>
       <h1 className="mb-2 text-2xl font-bold tracking-tight">Elfelejtett jelszó</h1>
       <p className="mb-6 text-sm text-text-muted">Küldünk egy linket, amellyel új jelszót adhatsz meg.</p>
-      <ActionForm action={requestPasswordReset}>
+      <ActionForm persistentMessage action={requestPasswordReset}>
         <Field label="E-mail cím" name="email" type="email" autoComplete="email" required />
         <SubmitButton pendingText="Egy pillanat…">Link küldése</SubmitButton>
       </ActionForm>
-      <Link href="/belepes" className="mt-6 text-center text-sm text-primary hover:text-primary-hover">
+      <Link href="/belepes" className="mt-6 text-center text-sm text-link hover:opacity-80">
         Vissza a belépéshez
       </Link>
     </>

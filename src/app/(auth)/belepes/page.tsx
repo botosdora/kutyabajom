@@ -15,12 +15,12 @@ export default function LoginPage() {
         <SubmitButton pendingText="Egy pillanat…">Belépés</SubmitButton>
       </ActionForm>
       <div className="mt-6 flex flex-col gap-2 text-center text-sm">
-        <Link href="/elfelejtett-jelszo" className="text-primary hover:text-primary-hover">
+        <Link href="/elfelejtett-jelszo" className="text-link hover:opacity-80">
           Elfelejtetted a jelszavad?
         </Link>
         <p className="text-text-muted">
           Még nincs fiókod?{" "}
-          <Link href="/regisztracio" className="font-semibold text-primary hover:text-primary-hover">
+          <Link href="/regisztracio" className="font-semibold text-link hover:opacity-80">
             Regisztráció
           </Link>
         </p>
