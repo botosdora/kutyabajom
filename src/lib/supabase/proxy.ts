@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { supabaseKey, supabaseUrl } from "@/lib/supabase/env";
 
 // Ezek az oldalak bejelentkezés nélkül is elérhetők.
 const PUBLIC_PATHS = ["/belepes", "/regisztracio", "/elfelejtett-jelszo", "/auth"];
@@ -8,8 +9,8 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
