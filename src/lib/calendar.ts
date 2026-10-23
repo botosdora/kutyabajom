@@ -36,3 +36,41 @@ export const CALENDAR_LAYERS = [
 export function parseCalendarFilter(value: string | undefined) {
   return new Set((value ?? "orvosi,feladat").split(","));
 }
+
+export const REPEAT_RULES = [
+  { value: "", label: "Nem ismétlődik" },
+  { value: "daily", label: "Naponta" },
+  { value: "weekly", label: "Hetente" },
+  { value: "monthly", label: "Havonta" },
+  { value: "yearly", label: "Évente" },
+];
+
+const MAX_OCCURRENCES = 200;
+
+// Egy ismétlődő sorozat dátumai a kezdéstől az utolsó napig (legfeljebb 200 alkalom).
+export function repeatDates(start: string, rule: string, interval: number, until: string) {
+  const dates: string[] = [];
+  const [y, m, d] = start.split("-").map(Number);
+  for (let i = 0; dates.length < MAX_OCCURRENCES; i++) {
+    const step = i * interval;
+    let date: Date;
+    if (rule === "daily") date = new Date(Date.UTC(y, m - 1, d + step));
+    else if (rule === "weekly") date = new Date(Date.UTC(y, m - 1, d + step * 7));
+    else {
+      const months = rule === "yearly" ? step * 12 : step;
+      const lastDay = new Date(Date.UTC(y, m - 1 + months + 1, 0)).getUTCDate();
+      date = new Date(Date.UTC(y, m - 1 + months, Math.min(d, lastDay)));
+    }
+    const iso = date.toISOString().slice(0, 10);
+    if (iso > until) break;
+    dates.push(iso);
+  }
+  return dates;
+}
+
+export function describeRepeat(rule: string | null, interval: number | null) {
+  if (!rule) return null;
+  const n = interval ?? 1;
+  const unit = { daily: "nap", weekly: "hét", monthly: "hónap", yearly: "év" }[rule] ?? "";
+  return n === 1 ? REPEAT_RULES.find((r) => r.value === rule)?.label : `${n} ${unit}enként`.replace("hétenként", "hetente");
+}

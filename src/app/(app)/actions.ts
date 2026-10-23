@@ -37,6 +37,8 @@ export async function createPet(_: ActionResult, formData: FormData): Promise<Ac
   if (weight) {
     await supabase.from("weights").insert({ pet_id: data, weight_kg: Number(weight.replace(",", ".")) });
   }
+  const adoption = optional(formData, "adoption_date");
+  if (adoption) await supabase.from("pets").update({ adoption_date: adoption }).eq("id", data);
   await rememberPet(data);
   revalidatePath("/", "layout");
   redirect("/");
@@ -52,6 +54,7 @@ export async function updatePet(_: ActionResult, formData: FormData): Promise<Ac
       sex: optional(formData, "sex"),
       birth_date: optional(formData, "birth_date"),
       chip_number: optional(formData, "chip_number"),
+      adoption_date: optional(formData, "adoption_date"),
       notes: optional(formData, "notes"),
     })
     .eq("id", String(formData.get("pet_id")));
@@ -76,7 +79,10 @@ export async function addMember(_: ActionResult, formData: FormData): Promise<Ac
   });
   if (error) return { error: "Nem sikerült hozzáadni." };
   if (data === "nincs_ilyen_felhasznalo") {
-    return { error: "Ezzel az e-mail címmel még nincs regisztráció. Előbb regisztráljon az appba." };
+    return {
+      error:
+        "Ezzel az e-mail címmel még nincs regisztráció. Az Egyéb menüben készíts neki meghívót, és ha regisztrált, add hozzá itt.",
+    };
   }
   revalidatePath("/kutya");
   return { message: "Társgazda hozzáadva." };
@@ -104,7 +110,7 @@ export async function updateProfile(_: ActionResult, formData: FormData): Promis
     })
     .eq("id", user.id);
   if (error) return { error: "Nem sikerült menteni." };
-  revalidatePath("/tobb");
+  revalidatePath("/egyeb");
   return { message: "Elmentve." };
 }
 
@@ -171,7 +177,7 @@ export async function updateNotificationSettings(_: ActionResult, formData: Form
     })
     .eq("id", user.id);
   if (error) return { error: "Nem sikerült menteni." };
-  revalidatePath("/tobb");
+  revalidatePath("/egyeb");
   return { message: "Elmentve." };
 }
 
@@ -190,4 +196,18 @@ export async function setPetPhoto(petId: string, path: string | null) {
   await supabase.from("pets").update({ photo_path: path }).eq("id", petId);
   if (pet?.photo_path && pet.photo_path !== path) await supabase.storage.from("pet-photos").remove([pet.photo_path]);
   revalidatePath("/", "layout");
+}
+
+export async function createInvite(_: ActionResult, formData: FormData): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("create_invite", { p_note: optional(formData, "note") ?? undefined });
+  if (error) return { error: "Nem sikerült meghívót készíteni." };
+  revalidatePath("/egyeb");
+  return { message: "Meghívó elkészült." };
+}
+
+export async function deleteInvite(code: string) {
+  const supabase = await createClient();
+  await supabase.from("invites").delete().eq("code", code).is("used_by", null);
+  revalidatePath("/egyeb");
 }

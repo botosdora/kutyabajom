@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { formatLabValue, LAB_STATUS_STYLE, labStatus } from "@/lib/labs";
 import { DocumentList } from "@/components/document-list";
 import { DocumentUpload } from "@/components/document-upload";
 import { ActionForm, AddPanel, DeleteButton, SubmitButton } from "@/components/forms";
@@ -28,10 +30,11 @@ export default async function MedicalEventPage({
     .eq("id", id)
     .maybeSingle();
   if (!event) notFound();
-  const [vets, { data: docs }, { data: costs }] = await Promise.all([
+  const [vets, { data: docs }, { data: costs }, { data: labs }] = await Promise.all([
     getVets(event.pet_id),
     supabase.from("documents").select("*").eq("medical_event_id", id).order("document_date", { ascending: false }),
     supabase.from("expenses").select("id, amount_huf, category, spent_on, title").eq("medical_event_id", id).order("spent_on"),
+    supabase.from("lab_results").select("*").eq("medical_event_id", id).order("parameter"),
   ]);
 
   return (
@@ -74,6 +77,28 @@ export default async function MedicalEventPage({
           </ActionForm>
         </div>
       </details>
+
+      {!!labs?.length && (
+        <section className="mb-6">
+          <SectionTitle>Laborértékek</SectionTitle>
+          <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
+            {labs.map((r) => {
+              const status = labStatus(Number(r.value), r.ref_low, r.ref_high);
+              return (
+                <li key={r.id}>
+                  <Link href={`/egeszseg/labor/${encodeURIComponent(r.parameter)}`} className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-surface-muted">
+                    <span className="flex-1 font-medium">{r.parameter}</span>
+                    <span className="font-semibold tabular-nums">{formatLabValue(Number(r.value), r.unit)}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${LAB_STATUS_STYLE[status].badge}`}>
+                      {LAB_STATUS_STYLE[status].label}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <section className="mb-6">
         <SectionTitle>Dokumentumok</SectionTitle>

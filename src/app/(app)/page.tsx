@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { BellRing, CalendarDays, ClipboardList, ListTodo, MessageCircleQuestion, NotebookPen, ShoppingBag, Stethoscope, Syringe, TrendingUp, Utensils } from "lucide-react";
+import { BellRing, Cake, CalendarDays, ClipboardList, ListTodo, MessageCircleQuestion, NotebookPen, ShoppingBag, Stethoscope, Syringe, TrendingUp, Utensils } from "lucide-react";
 import { TrendChart } from "@/components/trend-chart";
 import { TREND_SERIES, trendData } from "@/lib/trends";
 import { EventRow, type EventRowData } from "@/components/event-row";
 import { REMIND_DAYS, vetTypeLabel } from "@/lib/calendar";
 import { EXPENSE_CATEGORIES } from "@/lib/expenses";
-import { Card, EmptyState, SectionTitle } from "@/components/ui";
+import { AddPanel } from "@/components/forms";
+import { Card, EmptyState, Field, SectionTitle } from "@/components/ui";
+import { addQuickTask } from "./naptar/actions";
 import { TodayList, type TodayItem } from "@/components/today-list";
 import { WeightChart } from "@/components/weight-chart";
 import { weightSeries } from "@/lib/charts";
@@ -142,7 +144,23 @@ export default async function DashboardPage() {
       doneAt: log ? formatTime(log.logged_at) : null,
     };
   });
-  const items = [...doseItems, ...mealItems].sort((a, b) => a.time.localeCompare(b.time));
+  // A mai feladatok (pl. fizioterápia, saját teendők) is kipipálhatók a listában.
+  const allToday = (todayEvents ?? []) as (EventRowData & { event_time: string | null })[];
+  const taskItems: TodayItem[] = allToday
+    .filter((e) => e.category === "feladat")
+    .map((e) => ({
+      kind: "task",
+      key: `t-${e.id}`,
+      time: e.event_time ? shortTime(e.event_time) : "–",
+      title: e.title,
+      detail: e.task_types?.name && e.task_types.name !== e.title ? e.task_types.name : null,
+      eventId: e.id,
+      logId: null,
+      status: e.status === "planned" ? null : (e.status as "done" | "missed"),
+      doneAt: null,
+    }));
+  const vetToday = allToday.filter((e) => e.category === "orvosi");
+  const items = [...doseItems, ...mealItems, ...taskItems].sort((a, b) => a.time.localeCompare(b.time));
   const doneCount = items.filter((i) => i.status !== null).length;
 
   const reminders: Reminder[] = [
@@ -195,6 +213,12 @@ export default async function DashboardPage() {
   const monthAgo = weights.find((w) => w.measured_on <= addDays(today, -30));
   const change = latest && monthAgo ? Number(latest.weight_kg) - Number(monthAgo.weight_kg) : null;
 
+  // Szülinap vagy a hozzánk kerülés évfordulója ma?
+  const years = (from: string | null) =>
+    from && from.slice(5) === today.slice(5) && from < today ? Number(today.slice(0, 4)) - Number(from.slice(0, 4)) : null;
+  const birthdayYears = years(pet.birth_date);
+  const adoptionYears = years(pet.adoption_date);
+
   const dateLabel = new Intl.DateTimeFormat("hu-HU", {
     weekday: "long",
     month: "long",
@@ -209,6 +233,22 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-bold tracking-tight">Mai áttekintés</h1>
       </div>
 
+      {(birthdayYears !== null || adoptionYears !== null) && (
+        <div className="flex items-center gap-4 rounded-3xl bg-primary px-5 py-4 text-on-primary">
+          <Cake size={36} aria-hidden="true" className="shrink-0" />
+          <div>
+            <p className="text-lg font-bold">
+              {birthdayYears !== null ? `Boldog szülinapot, ${pet.name}!` : `Ma van ${pet.name} évfordulója!`}
+            </p>
+            <p className="text-sm opacity-90">
+              {birthdayYears !== null && `Ma ${birthdayYears} éves.`}
+              {birthdayYears !== null && adoptionYears !== null && " "}
+              {adoptionYears !== null && `${adoptionYears} éve van veletek.`}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         <section>
           <SectionTitle
@@ -222,6 +262,16 @@ export default async function DashboardPage() {
             Teendők
           </SectionTitle>
           <TodayList items={items} petId={pet.id} day={today} />
+        <div className="mt-2">
+          <AddPanel label="Saját teendő mára" action={addQuickTask}>
+            <input type="hidden" name="pet_id" value={pet.id} />
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <Field label="Teendő" name="title" placeholder="pl. fülcsepp, karomvágás" required />
+              <Field label="Időpont" name="event_time" type="time" />
+            </div>
+            <p className="text-xs text-text-muted">A naptárba is bekerül feladatként.</p>
+          </AddPanel>
+        </div>
           <Link href="/gyogyszerek" className="mt-2 inline-block text-sm font-medium text-link">
             Gyógyszerek kezelése →
           </Link>
@@ -259,16 +309,16 @@ export default async function DashboardPage() {
                 </Link>
               }
             >
-              Mai események
+              Mai orvosi események
             </SectionTitle>
-            {todayEvents?.length ? (
+            {vetToday.length ? (
               <ul className="flex flex-col gap-2">
-                {(todayEvents as EventRowData[]).map((e) => (
+                {vetToday.map((e) => (
                   <EventRow key={e.id} event={e} showDate={false} />
                 ))}
               </ul>
             ) : (
-              <EmptyState>Mára nincs vizsgálat vagy feladat.</EmptyState>
+              <EmptyState>Mára nincs orvosi esemény.</EmptyState>
             )}
           </div>
         </section>

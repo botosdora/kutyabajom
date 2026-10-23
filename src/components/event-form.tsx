@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ActionForm, SubmitButton, type FormAction } from "@/components/forms";
 import { Field, Select, TextArea } from "@/components/ui";
 import type { Tables } from "@/lib/database.types";
+import { REPEAT_RULES } from "@/lib/calendar";
 
 type Option = { value: string; label: string };
 
@@ -28,6 +29,16 @@ export function EventForm({
 }) {
   const [category, setCategory] = useState(event?.category ?? defaultCategory);
   const [taskType, setTaskType] = useState(event?.task_type_id ?? taskTypes[0]?.value ?? "__new");
+  const [date, setDate] = useState(event?.event_date ?? defaultDate);
+  const [repeatRule, setRepeatRule] = useState("");
+  const [repeatUntil, setRepeatUntil] = useState("");
+
+  const changeRule = (rule: string) => {
+    setRepeatRule(rule);
+    // Ésszerű alapértelmezett vég: naponta 1 hónap, hetente 3 hónap, havonta 1 év, évente 3 év.
+    const days = { daily: 30, weekly: 90, monthly: 365, yearly: 365 * 3 }[rule];
+    if (days && date) setRepeatUntil(new Date(Date.parse(`${date}T12:00:00Z`) + days * 86400000).toISOString().slice(0, 10));
+  };
 
   return (
     <ActionForm action={action}>
@@ -82,9 +93,38 @@ export function EventForm({
         placeholder={category === "orvosi" ? "pl. Éves kontroll, veszettség oltás" : "Ha üres, a típus neve lesz"}
       />
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Dátum" name="event_date" type="date" defaultValue={event?.event_date ?? defaultDate} required />
+        <Field label="Dátum" name="event_date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
         <Field label="Időpont" name="event_time" type="time" defaultValue={event?.event_time?.slice(0, 5) ?? ""} />
       </div>
+      {!event && (
+        <div className="flex flex-col gap-3 rounded-xl bg-surface-muted p-3">
+          <Select label="Ismétlődés" name="repeat_rule" value={repeatRule} onChange={(e) => changeRule(e.target.value)} options={REPEAT_RULES} />
+          {repeatRule && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field
+                label={`Hány ${{ daily: "naponta", weekly: "hetente", monthly: "havonta", yearly: "évente" }[repeatRule]}?`}
+                name="repeat_interval"
+                type="number"
+                min={1}
+                defaultValue={1}
+                hint="1 = minden alkalommal"
+              />
+              <Field
+                label="Utolsó alkalom legkésőbb"
+                name="repeat_until"
+                type="date"
+                min={date}
+                value={repeatUntil}
+                onChange={(e) => setRepeatUntil(e.target.value)}
+                required
+              />
+            </div>
+          )}
+        </div>
+      )}
+      {event?.series_id && (
+        <p className="text-xs text-text-muted">Ez egy ismétlődő sorozat egyik alkalma; a módosítás csak erre az alkalomra vonatkozik.</p>
+      )}
       {category === "orvosi" && <Select label="Orvos" name="vet_id" defaultValue={event?.vet_id ?? ""} options={vets} />}
       <Field label="Helyszín" name="location" defaultValue={event?.location ?? ""} />
       <TextArea label="Megjegyzés" name="notes" defaultValue={event?.notes ?? ""} />

@@ -5,7 +5,7 @@ import { AlertCircle, CheckCircle2, Info, type LucideIcon } from "lucide-react";
 // Egyszerű, közös felületi elemek. Szándékosan kevés változat.
 
 const buttonBase =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-[15px] font-semibold transition-colors disabled:opacity-60";
+  "inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 text-[15px] font-semibold transition-colors disabled:opacity-60";
 const buttonVariants = {
   primary: "bg-primary text-on-primary hover:bg-primary-hover",
   secondary: "border border-border-strong bg-surface text-text hover:bg-surface-muted",
@@ -105,7 +105,7 @@ export function PageHeader({
           ← {back.label}
         </Link>
       )}
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {Icon && (
             <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-link">
@@ -187,5 +187,33 @@ export function Alert({ kind = "info", children }: { kind?: keyof typeof alertSt
       <Icon size={18} className="mt-px shrink-0" aria-hidden="true" />
       <span>{children}</span>
     </div>
+  );
+}
+
+// Kategória-csoport: fejléc ikonnal és darabszámmal, alatta a csoport elemei.
+export function GroupCard({
+  title,
+  icon: Icon,
+  count,
+  children,
+}: {
+  title: string;
+  icon: LucideIcon;
+  count?: number;
+  children: ReactNode;
+}) {
+  return (
+    <section className="mb-6 overflow-hidden rounded-3xl border border-border bg-surface-muted/50">
+      <h2 className="flex items-center gap-3 border-b border-border bg-surface px-4 py-3">
+        <span className="flex size-9 items-center justify-center rounded-xl bg-primary-soft text-link">
+          <Icon size={18} aria-hidden="true" />
+        </span>
+        <span className="flex-1 font-bold">{title}</span>
+        {count !== undefined && (
+          <span className="rounded-full bg-surface-muted px-2.5 py-0.5 text-xs font-semibold text-text-muted">{count}</span>
+        )}
+      </h2>
+      <div className="p-2">{children}</div>
+    </section>
   );
 }

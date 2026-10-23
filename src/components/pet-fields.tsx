@@ -19,7 +19,10 @@ export function PetFields({ pet }: { pet?: Tables<"pets"> }) {
         />
         <Field label="Születési dátum" name="birth_date" type="date" defaultValue={pet?.birth_date ?? ""} />
       </div>
-      <Field label="Chipszám" name="chip_number" inputMode="numeric" defaultValue={pet?.chip_number ?? ""} />
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Chipszám" name="chip_number" inputMode="numeric" defaultValue={pet?.chip_number ?? ""} />
+        <Field label="Hozzánk került" name="adoption_date" type="date" defaultValue={pet?.adoption_date ?? ""} />
+      </div>
     </>
   );
 }

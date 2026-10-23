@@ -5,11 +5,24 @@ import { signup } from "../actions";
 
 export const metadata = { title: "Regisztráció" };
 
-export default function SignupPage() {
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ kod?: string }> }) {
+  const { kod } = await searchParams;
   return (
     <>
-      <h1 className="mb-6 text-2xl font-bold tracking-tight">Regisztráció</h1>
+      <h1 className="mb-2 text-2xl font-bold tracking-tight">Regisztráció</h1>
+      <p className="mb-6 text-sm text-text-muted">
+        A Kutyabajom zárt körű: regisztrálni meghívókóddal lehet, amit egy már regisztrált gazditól kapsz.
+      </p>
       <ActionForm persistentMessage action={signup}>
+        <Field
+          label="Meghívókód"
+          name="invite_code"
+          defaultValue={kod ?? ""}
+          autoCapitalize="characters"
+          autoComplete="off"
+          placeholder="pl. K7M2QW9X"
+          required
+        />
         <Field label="Neved" name="full_name" autoComplete="name" required />
         <Field label="E-mail cím" name="email" type="email" autoComplete="email" required />
         <Field

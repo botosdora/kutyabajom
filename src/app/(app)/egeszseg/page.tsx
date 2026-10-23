@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ChevronRight, FileDown, FileText, HeartPulse, Pill, Scale, ShieldAlert, Stethoscope, Syringe, UserRound } from "lucide-react";
+import { ChevronRight, FileDown, FlaskConical, FileText, HeartPulse, Pill, Scale, ShieldAlert, Stethoscope, Syringe, UserRound } from "lucide-react";
 import { PetAvatar } from "@/components/pet-switcher";
 import { ButtonLink, Card, PageHeader } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { petPhotoUrl, requireCurrentPet } from "@/lib/pets";
 import { formatAge, formatWeight } from "@/lib/format";
+import { bcsInfo } from "@/lib/health";
 
 export const metadata = { title: "Egészség" };
 
@@ -17,7 +18,7 @@ export default async function HealthPage() {
   const [latestWeight, allergies, conditions, vaccinations, events, vets, docs] = await Promise.all([
     supabase
       .from("weights")
-      .select("weight_kg")
+      .select("weight_kg, body_condition")
       .eq("pet_id", pet.id)
       .order("measured_on", { ascending: false })
       .order("created_at", { ascending: false })
@@ -31,12 +32,22 @@ export default async function HealthPage() {
     count("documents"),
   ]);
 
+  const { data: bcsRow } = await supabase
+    .from("weights")
+    .select("body_condition")
+    .eq("pet_id", pet.id)
+    .not("body_condition", "is", null)
+    .order("measured_on", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const latestBcs = bcsRow?.body_condition ?? null;
   const facts = [
     { label: "Fajta", value: pet.breed },
     { label: "Kor", value: formatAge(pet.birth_date) },
     { label: "Nem", value: pet.sex === "kan" ? "Kan" : pet.sex === "szuka" ? "Szuka" : null },
     { label: "Súly", value: latestWeight.data ? formatWeight(Number(latestWeight.data.weight_kg)) : null },
     { label: "Chipszám", value: pet.chip_number },
+    { label: "Testkondíció", value: latestBcs ? `${latestBcs} / 9 · ${bcsInfo(latestBcs).label}` : null },
   ];
 
   const sections = [
@@ -55,6 +66,7 @@ export default async function HealthPage() {
       icon: Stethoscope,
       meta: `${events.count ?? 0} esemény`,
     },
+    { href: "/egeszseg/labor", label: "Laborértékek", icon: FlaskConical, meta: "Vérkép és egyéb értékek követése" },
     { href: "/egeszseg/dokumentumok", label: "Orvosi dokumentumok", icon: FileText, meta: `${docs.count ?? 0} dokumentum` },
     { href: "/egeszseg/orvosok", label: "Orvosok", icon: UserRound, meta: `${vets.count ?? 0} orvos` },
   ];

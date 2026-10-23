@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Ban, Bone, ChevronRight, Clock, Utensils } from "lucide-react";
 import { ActionForm, AddPanel, SubmitButton } from "@/components/forms";
 import { FoodFields } from "@/components/food-fields";
-import { Card, EmptyState, Field, PageHeader, SectionTitle, TextArea } from "@/components/ui";
+import { Card, Field, GroupCard, PageHeader, SectionTitle, TextArea } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { daysBetween, inDaysLabel, todayIso } from "@/lib/format";
 import { FOOD_KINDS, foodKindLabel } from "@/lib/foods";
@@ -52,8 +52,12 @@ export default async function FeedingPage() {
       {FOOD_KINDS.map((k) => {
         const list = active.filter((f) => f.kind === k.value);
         return (
-          <section key={k.value} className="mb-6">
-            <SectionTitle icon={k.value === "tap" ? Utensils : Bone}>{k.value === "tap" ? "Jelenlegi tápok" : "Jutalomfalatok"}</SectionTitle>
+          <GroupCard
+            key={k.value}
+            title={k.value === "tap" ? "Jelenlegi tápok" : "Jutalomfalatok"}
+            icon={k.value === "tap" ? Utensils : Bone}
+            count={list.length}
+          >
             {list.length ? (
               <ul className="flex flex-col gap-2">
                 {list.map((f) => (
@@ -61,9 +65,9 @@ export default async function FeedingPage() {
                 ))}
               </ul>
             ) : (
-              <EmptyState>Nincs rögzítve.</EmptyState>
+              <p className="px-2 py-3 text-center text-sm text-text-muted">Nincs rögzítve.</p>
             )}
-          </section>
+          </GroupCard>
         );
       })}
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ChevronRight, FileDown, Pill } from "lucide-react";
-import { ButtonLink, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
+import { Bug, ChevronRight, FileDown, Leaf, Pill } from "lucide-react";
+import { ButtonLink, EmptyState, GroupCard, PageHeader } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { daysBetween, inDaysLabel, todayIso } from "@/lib/format";
 import { categoryLabel, describeSchedule, MED_CATEGORIES } from "@/lib/medications";
@@ -8,6 +8,8 @@ import { requireCurrentPet } from "@/lib/pets";
 import type { Tables } from "@/lib/database.types";
 
 export const metadata = { title: "Gyógyszerek" };
+
+const CATEGORY_ICONS: Record<string, typeof Pill> = { gyogyszer: Pill, feregtelenites: Bug, kiegeszito: Leaf };
 
 function MedicationRow({ med, today }: { med: Tables<"medications">; today: string }) {
   const reorderDays = med.reorder_on ? daysBetween(today, med.reorder_on) : null;
@@ -70,15 +72,15 @@ export default async function MedicationsPage() {
       {MED_CATEGORIES.map((cat) => {
         const list = active.filter((m) => m.category === cat.value);
         if (list.length === 0) return null;
+        const Icon = CATEGORY_ICONS[cat.value];
         return (
-          <section key={cat.value} className="mb-6">
-            <SectionTitle>{cat.label}</SectionTitle>
+          <GroupCard key={cat.value} title={cat.label} icon={Icon} count={list.length}>
             <ul className="flex flex-col gap-2">
               {list.map((m) => (
                 <MedicationRow key={m.id} med={m} today={today} />
               ))}
             </ul>
-          </section>
+          </GroupCard>
         );
       })}
 

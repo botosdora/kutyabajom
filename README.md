@@ -52,6 +52,16 @@ A regisztrációs és jelszó-visszaállító levelek magyar sablonjai a
 `supabase/email-templates` mappában vannak; ezeket a Supabase felületén kell
 beállítani (Authentication → Emails).
 
+### Regisztráció
+
+Regisztrálni csak meghívókóddal lehet (Egyéb → Meghívók). A kódot az adatbázis
+ellenőrzi a felhasználó létrehozásakor (`handle_new_user` trigger).
+
+### Adatmentés
+
+Az Egyéb oldalon letölthető minden adat (`/export/mentes`), kérésre a
+dokumentumokkal és fotókkal együtt egy ZIP-ben.
+
 ## Fázisok
 
 1. ✅ Regisztráció, kutyaprofilok, közös gazdik, adatlap, súly, allergiák és betegségek, oltások, orvosi beavatkozások, orvosok

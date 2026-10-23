@@ -6,6 +6,8 @@ import type { ActionResult } from "@/components/forms";
 
 function translateAuthError(message: string) {
   if (message.includes("Invalid login credentials")) return "Hibás e-mail cím vagy jelszó.";
+  if (message.includes("meghívókód") || message.includes("Database error saving new user"))
+    return "Érvénytelen vagy már felhasznált meghívókód.";
   if (message.includes("Email not confirmed"))
     return "Először erősítsd meg az e-mail címed a neked küldött levélben.";
   if (message.includes("already registered")) return "Ezzel az e-mail címmel már regisztráltak.";
@@ -30,11 +32,15 @@ export async function signup(_: ActionResult, formData: FormData): Promise<Actio
   if (password.length < 8) return { error: "A jelszó legalább 8 karakter legyen." };
   if (password !== formData.get("password2")) return { error: "A két jelszó nem egyezik." };
 
+  const inviteCode = String(formData.get("invite_code") ?? "").trim().toUpperCase();
   const supabase = await createClient();
+  const { data: valid } = await supabase.rpc("invite_is_valid", { p_code: inviteCode });
+  if (!valid) return { error: "Érvénytelen, lejárt vagy már felhasznált meghívókód. Kérj újat attól, aki meghívott." };
+
   const { error } = await supabase.auth.signUp({
     email: String(formData.get("email")),
     password,
-    options: { data: { full_name: String(formData.get("full_name")).trim() } },
+    options: { data: { full_name: String(formData.get("full_name")).trim(), invite_code: inviteCode } },
   });
   if (error) return { error: translateAuthError(error.message) };
   return {

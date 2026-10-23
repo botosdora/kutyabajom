@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // A PDF exportok betűtípusai fájlként kellenek a szerveren.
   outputFileTracingIncludes: { "/export/**": ["./src/fonts/**"] },
   serverExternalPackages: ["@react-pdf/renderer"],
+  async redirects() {
+    return [{ source: "/tobb", destination: "/egyeb", permanent: true }];
+  },
   async headers() {
     return [
       {

@@ -6,6 +6,7 @@ import { eventKindLabel } from "@/lib/health";
 import { average, observationLabel, OBSERVATIONS, SCALES, STOOL_OPTIONS, stoolLabel } from "@/lib/journal";
 import { categoryLabel, describeSchedule, MED_CATEGORIES } from "@/lib/medications";
 import type { Tables } from "@/lib/database.types";
+import { formatLabValue, formatRange, labStatus } from "@/lib/labs";
 import { Empty, PdfDoc, s, Section, Table } from "./base";
 
 type Pet = Tables<"pets">;
@@ -47,7 +48,7 @@ export async function medicationsPdf(pet: Pet) {
 
 export async function healthPdf(pet: Pet) {
   const supabase = await createClient();
-  const [weights, allergies, conditions, meds, vaccinations, events, vets] = await Promise.all([
+  const [weights, allergies, conditions, meds, vaccinations, events, vets, labs] = await Promise.all([
     supabase.from("weights").select("*").eq("pet_id", pet.id).order("measured_on", { ascending: false }).limit(12),
     supabase.from("allergies").select("*").eq("pet_id", pet.id).order("name"),
     supabase.from("conditions").select("*").eq("pet_id", pet.id).order("active", { ascending: false }).order("name"),
@@ -55,7 +56,11 @@ export async function healthPdf(pet: Pet) {
     supabase.from("vaccinations").select("*, vets(name)").eq("pet_id", pet.id).order("vaccinated_on", { ascending: false }),
     supabase.from("medical_events").select("*, vets(name)").eq("pet_id", pet.id).order("event_date", { ascending: false }),
     supabase.from("vets").select("*").eq("pet_id", pet.id).order("name"),
+    supabase.from("lab_results").select("*").eq("pet_id", pet.id).order("measured_on", { ascending: false }),
   ]);
+  // Paraméterenként a legutóbbi laborérték.
+  const firstLab = new Map<string, Tables<"lab_results">>();
+  for (const r of labs.data ?? []) if (!firstLab.has(r.parameter)) firstLab.set(r.parameter, r);
   const latest = weights.data?.[0];
   const facts = [
     ["Fajta", pet.breed],
@@ -166,10 +171,36 @@ export async function healthPdf(pet: Pet) {
         )}
       </Section>
 
+      {firstLab.size > 0 && (
+        <Section title="Laborértékek (legutóbbi)">
+          <Table
+            columns={[
+              { label: "Paraméter", width: "30%" },
+              { label: "Érték", width: "22%" },
+              { label: "Referencia", width: "26%" },
+              { label: "Dátum", width: "22%" },
+            ]}
+            rows={[...firstLab.values()]
+              .sort((a, b) => a.parameter.localeCompare(b.parameter, "hu"))
+              .map((r) => {
+                const st = labStatus(Number(r.value), r.ref_low, r.ref_high);
+                return [
+                  r.parameter,
+                  formatLabValue(Number(r.value), r.unit) + (st === "low" ? " ↓" : st === "high" ? " ↑" : ""),
+                  formatRange(r.ref_low, r.ref_high, r.unit),
+                  formatDate(r.measured_on),
+                ];
+              })}
+          />
+        </Section>
+      )}
+
       {!!weights.data?.length && (
         <Section title="Súlymérések">
           <Text>
-            {weights.data.map((w) => `${formatDate(w.measured_on)}: ${formatWeight(Number(w.weight_kg))}`).join("   ·   ")}
+            {weights.data
+              .map((w) => `${formatDate(w.measured_on)}: ${formatWeight(Number(w.weight_kg))}${w.body_condition ? ` (BCS ${w.body_condition}/9)` : ""}`)
+              .join("   ·   ")}
           </Text>
         </Section>
       )}

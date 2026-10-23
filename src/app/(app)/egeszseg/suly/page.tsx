@@ -1,10 +1,10 @@
 import { AddPanel, DeleteButton } from "@/components/forms";
 import { History, Scale } from "lucide-react";
-import { Card, EmptyState, Field, LoadMore, PageHeader, pageLimit, SectionTitle } from "@/components/ui";
+import { Card, EmptyState, Field, LoadMore, PageHeader, pageLimit, SectionTitle, Select } from "@/components/ui";
 import { WeightChart } from "@/components/weight-chart";
 import { weightSeries } from "@/lib/charts";
 import { formatDate, formatWeight, todayIso } from "@/lib/format";
-import { getWeights } from "@/lib/health";
+import { BCS_OPTIONS, bcsInfo, getWeights } from "@/lib/health";
 import { requireCurrentPet } from "@/lib/pets";
 import { addWeight, deleteRecord } from "../actions";
 
@@ -30,6 +30,10 @@ export default async function WeightPage({ searchParams }: { searchParams: Promi
             <Field label="Dátum" name="measured_on" type="date" defaultValue={todayIso()} required />
             <Field label="Súly (kg)" name="weight_kg" inputMode="decimal" placeholder="pl. 24,3" required />
           </div>
+          <Select label="Testkondíció (BCS)" name="body_condition" options={BCS_OPTIONS} />
+          <p className="-mt-2 text-xs text-text-muted">
+            Ideális (4–5): a bordák könnyen kitapinthatók, felülről látszik a derék. A pontszámot az orvos is megadhatja.
+          </p>
           <Field label="Megjegyzés" name="note" />
         </AddPanel>
       </div>
@@ -42,7 +46,14 @@ export default async function WeightPage({ searchParams }: { searchParams: Promi
           {weights.slice(0, limit).map((w) => (
             <li key={w.id} className="flex items-center gap-3 py-2 pl-4 pr-2">
               <div className="flex-1">
-                <p className="font-semibold">{formatWeight(Number(w.weight_kg))}</p>
+                <p className="flex items-center gap-2 font-semibold">
+                  {formatWeight(Number(w.weight_kg))}
+                  {w.body_condition && (
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${bcsInfo(w.body_condition).badge}`}>
+                      BCS {w.body_condition} · {bcsInfo(w.body_condition).label}
+                    </span>
+                  )}
+                </p>
                 <p className="text-sm text-text-muted">
                   {formatDate(w.measured_on)}
                   {w.note && ` · ${w.note}`}

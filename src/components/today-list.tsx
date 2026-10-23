@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Clock, MoreHorizontal, Pill, Utensils, X } from "lucide-react";
+import Link from "next/link";
+import { Check, ClipboardList, Clock, MoreHorizontal, Pill, Utensils, X } from "lucide-react";
 import { logDose, logMeal, undoDose, undoMeal } from "@/app/(app)/today-actions";
+import { setTaskStatus } from "@/app/(app)/naptar/actions";
 
 export type TodayItem =
   | {
@@ -15,6 +17,17 @@ export type TodayItem =
       scheduledFor: string;
       logId: string | null;
       status: "given" | "missed" | "refused" | null;
+      doneAt: string | null;
+    }
+  | {
+      kind: "task";
+      key: string;
+      time: string;
+      title: string;
+      detail: string | null;
+      eventId: string;
+      logId: null;
+      status: "done" | "missed" | null;
       doneAt: string | null;
     }
   | {
@@ -35,11 +48,12 @@ const STATUS_TEXT: Record<string, string> = {
   refused: "Elutasította",
   eaten: "Megette",
   partial: "Részben ette meg",
+  done: "Kész",
 };
 const MEAL_REFUSED = "Nem ette meg";
 
 function isDone(status: TodayItem["status"]) {
-  return status === "given" || status === "eaten" || status === "partial";
+  return status === "given" || status === "eaten" || status === "partial" || status === "done";
 }
 
 function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: string }) {
@@ -58,9 +72,18 @@ function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: st
     run(() =>
       item.kind === "dose"
         ? logDose(petId, item.medicationId, item.scheduledFor, "given", actualTime)
-        : logMeal(petId, day, item.meal, "eaten"),
+        : item.kind === "task"
+          ? setTaskStatus(item.eventId, "done")
+          : logMeal(petId, day, item.meal, "eaten"),
     );
-  const undo = () => run(() => (item.kind === "dose" ? undoDose(item.logId!) : undoMeal(item.logId!)));
+  const undo = () =>
+    run(() =>
+      item.kind === "dose"
+        ? undoDose(item.logId!)
+        : item.kind === "task"
+          ? setTaskStatus(item.eventId, "planned")
+          : undoMeal(item.logId!),
+    );
 
   const logged = item.status !== null;
   const done = isDone(item.status);
@@ -69,8 +92,10 @@ function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: st
       ? null
       : item.kind === "meal" && item.status === "refused"
         ? MEAL_REFUSED
-        : STATUS_TEXT[item.status];
-  const Icon = item.kind === "dose" ? Pill : Utensils;
+        : item.kind === "task" && item.status === "missed"
+          ? "Elmaradt"
+          : STATUS_TEXT[item.status];
+  const Icon = item.kind === "dose" ? Pill : item.kind === "task" ? ClipboardList : Utensils;
 
   return (
     <li className={`border-b border-border last:border-b-0 ${pending ? "opacity-60" : ""}`}>
@@ -132,7 +157,7 @@ function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: st
             <div className="flex flex-wrap gap-2">
               {item.kind === "dose" ? (
                 <>
-                  <OptionButton onClick={() => setShowTime((s) => !s)}>
+                  <OptionButton onClick={() => setShowTime((v) => !v)}>
                     <Clock size={15} aria-hidden="true" /> Más időpontban
                   </OptionButton>
                   <OptionButton onClick={() => run(() => logDose(petId, item.medicationId, item.scheduledFor, "missed"))}>
@@ -141,6 +166,16 @@ function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: st
                   <OptionButton onClick={() => run(() => logDose(petId, item.medicationId, item.scheduledFor, "refused"))}>
                     Elutasította
                   </OptionButton>
+                </>
+              ) : item.kind === "task" ? (
+                <>
+                  <OptionButton onClick={() => run(() => setTaskStatus(item.eventId, "missed"))}>Elmaradt</OptionButton>
+                  <Link
+                    href={`/naptar/${item.eventId}`}
+                    className="flex h-10 items-center rounded-lg border border-border-strong bg-surface px-3 text-sm font-medium hover:bg-surface-muted"
+                  >
+                    Részletek
+                  </Link>
                 </>
               ) : (
                 <>

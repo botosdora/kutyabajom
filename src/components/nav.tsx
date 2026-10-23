@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, HeartPulse, House, Menu, NotebookPen } from "lucide-react";
+import { CalendarDays, HeartPulse, House, LayoutGrid, NotebookPen } from "lucide-react";
 
 const ITEMS = [
   { href: "/", label: "Főoldal", icon: House },
   { href: "/naptar", label: "Naptár", icon: CalendarDays },
   { href: "/naplo", label: "Napló", icon: NotebookPen },
   { href: "/egeszseg", label: "Egészség", icon: HeartPulse },
-  { href: "/tobb", label: "Több", icon: Menu },
+  { href: "/egyeb", label: "Egyéb", icon: LayoutGrid },
 ];
 
 function isActive(pathname: string, href: string) {

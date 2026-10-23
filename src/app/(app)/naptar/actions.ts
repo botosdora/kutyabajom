@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { optional, optionalNumber, required } from "@/lib/form";
-import { CALENDAR_FILTER_COOKIE, medicalKindFor, vetTypeLabel } from "@/lib/calendar";
+import { CALENDAR_FILTER_COOKIE, medicalKindFor, repeatDates, vetTypeLabel } from "@/lib/calendar";
+import { todayIso } from "@/lib/format";
 import type { ActionResult } from "@/components/forms";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -51,9 +52,27 @@ async function eventFields(supabase: Supabase, fd: FormData, petId: string) {
 export async function createEvent(_: ActionResult, fd: FormData): Promise<ActionResult> {
   const petId = required(fd, "pet_id");
   if (!required(fd, "event_date")) return { error: "Add meg a dátumot." };
+  const rule = optional(fd, "repeat_rule");
+  const interval = Math.max(1, Math.round(optionalNumber(fd, "repeat_interval") ?? 1));
+  const until = optional(fd, "repeat_until");
+  if (rule && !until) return { error: "Add meg, meddig ismétlődjön." };
+  if (rule && until! < required(fd, "event_date")) return { error: "Az ismétlődés vége nem lehet a kezdés előtt." };
+
   const supabase = await createClient();
   const fields = await eventFields(supabase, fd, petId);
-  const { error } = await supabase.from("calendar_events").insert({ pet_id: petId, ...fields });
+  // Ismétlődésnél minden alkalom külön esemény, közös sorozatazonosítóval.
+  const seriesId = rule ? crypto.randomUUID() : null;
+  const dates = rule ? repeatDates(fields.event_date, rule, interval, until!) : [fields.event_date];
+  const { error } = await supabase.from("calendar_events").insert(
+    dates.map((date) => ({
+      pet_id: petId,
+      ...fields,
+      event_date: date,
+      series_id: seriesId,
+      repeat_rule: rule,
+      repeat_interval: rule ? interval : null,
+    })),
+  );
   if (error) return { error: "Nem sikerült menteni." };
   revalidatePath("/", "layout");
   redirect(`/naptar?nap=${fields.event_date}`);
@@ -73,6 +92,45 @@ export async function deleteEvent(id: string) {
   await supabase.from("calendar_events").delete().eq("id", id);
   revalidatePath("/", "layout");
   redirect("/naptar");
+}
+
+// Egy ismétlődő sorozat ezen és minden későbbi, még tervezett alkalmának törlése.
+export async function deleteSeriesFrom(seriesId: string, fromDate: string) {
+  const supabase = await createClient();
+  await supabase
+    .from("calendar_events")
+    .delete()
+    .eq("series_id", seriesId)
+    .gte("event_date", fromDate)
+    .eq("status", "planned");
+  revalidatePath("/", "layout");
+  redirect("/naptar");
+}
+
+// Gyors teendő a főoldalról: mai feladat, ami a naptárba is bekerül.
+export async function addQuickTask(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  const title = optional(fd, "title");
+  if (!title) return { error: "Írd be a teendőt." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("calendar_events").insert({
+    pet_id: required(fd, "pet_id"),
+    category: "feladat",
+    title,
+    event_date: optional(fd, "event_date") ?? todayIso(),
+    event_time: optional(fd, "event_time"),
+  });
+  if (error) return { error: "Nem sikerült menteni." };
+  revalidatePath("/", "layout");
+  return { message: "Teendő hozzáadva." };
+}
+
+export async function setTaskStatus(id: string, status: "planned" | "done" | "missed") {
+  const supabase = await createClient();
+  await supabase
+    .from("calendar_events")
+    .update({ status, completed_on: status === "done" ? todayIso() : null })
+    .eq("id", id);
+  revalidatePath("/", "layout");
 }
 
 export async function reopenEvent(id: string) {

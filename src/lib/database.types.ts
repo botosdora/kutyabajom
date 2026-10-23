@@ -62,6 +62,9 @@ export type Database = {
           medical_event_id: string | null
           notes: string | null
           pet_id: string
+          repeat_interval: number | null
+          repeat_rule: string | null
+          series_id: string | null
           status: string
           task_type_id: string | null
           title: string
@@ -81,6 +84,9 @@ export type Database = {
           medical_event_id?: string | null
           notes?: string | null
           pet_id: string
+          repeat_interval?: number | null
+          repeat_rule?: string | null
+          series_id?: string | null
           status?: string
           task_type_id?: string | null
           title: string
@@ -100,6 +106,9 @@ export type Database = {
           medical_event_id?: string | null
           notes?: string | null
           pet_id?: string
+          repeat_interval?: number | null
+          repeat_rule?: string | null
+          series_id?: string | null
           status?: string
           task_type_id?: string | null
           title?: string
@@ -527,6 +536,96 @@ export type Database = {
           },
         ]
       }
+      invites: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          note: string | null
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          note?: string | null
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          note?: string | null
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
+      lab_results: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          measured_on: string
+          medical_event_id: string | null
+          note: string | null
+          parameter: string
+          pet_id: string
+          ref_high: number | null
+          ref_low: number | null
+          unit: string | null
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          measured_on: string
+          medical_event_id?: string | null
+          note?: string | null
+          parameter: string
+          pet_id: string
+          ref_high?: number | null
+          ref_low?: number | null
+          unit?: string | null
+          value: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          measured_on?: string
+          medical_event_id?: string | null
+          note?: string | null
+          parameter?: string
+          pet_id?: string
+          ref_high?: number | null
+          ref_low?: number | null
+          unit?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_results_medical_event_id_fkey"
+            columns: ["medical_event_id"]
+            isOneToOne: false
+            referencedRelation: "medical_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_results_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meal_logs: {
         Row: {
           created_by: string | null
@@ -802,6 +901,7 @@ export type Database = {
       }
       pets: {
         Row: {
+          adoption_date: string | null
           birth_date: string | null
           breakfast_time: string
           breed: string | null
@@ -816,6 +916,7 @@ export type Database = {
           sex: string | null
         }
         Insert: {
+          adoption_date?: string | null
           birth_date?: string | null
           breakfast_time?: string
           breed?: string | null
@@ -830,6 +931,7 @@ export type Database = {
           sex?: string | null
         }
         Update: {
+          adoption_date?: string | null
           birth_date?: string | null
           breakfast_time?: string
           breed?: string | null
@@ -1046,6 +1148,7 @@ export type Database = {
       }
       weights: {
         Row: {
+          body_condition: number | null
           created_at: string
           created_by: string | null
           id: string
@@ -1055,6 +1158,7 @@ export type Database = {
           weight_kg: number
         }
         Insert: {
+          body_condition?: number | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -1064,6 +1168,7 @@ export type Database = {
           weight_kg: number
         }
         Update: {
+          body_condition?: number | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -1118,6 +1223,7 @@ export type Database = {
           url: string
         }[]
       }
+      create_invite: { Args: { p_note?: string }; Returns: string }
       create_pet: {
         Args: {
           p_birth_date?: string
@@ -1138,6 +1244,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      invite_is_valid: { Args: { p_code: string }; Returns: boolean }
       is_pet_member: { Args: { p_pet_id: string }; Returns: boolean }
       is_pet_owner: { Args: { p_pet_id: string }; Returns: boolean }
       pet_member_list: {
@@ -1170,6 +1277,14 @@ export type Database = {
           name: string
           scheduled_for: string
           status: string
+        }[]
+      }
+      storage_usage: {
+        Args: never
+        Returns: {
+          bucket: string
+          bytes: number
+          files: number
         }[]
       }
     }

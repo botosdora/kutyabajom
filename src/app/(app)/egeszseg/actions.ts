@@ -24,6 +24,7 @@ export async function addWeight(_: ActionResult, fd: FormData): Promise<ActionRe
     pet_id: required(fd, "pet_id"),
     measured_on: required(fd, "measured_on"),
     weight_kg: weight,
+    body_condition: optionalNumber(fd, "body_condition"),
     note: optional(fd, "note"),
   });
   return error ? SAVE_ERROR : done("/egeszseg/suly");

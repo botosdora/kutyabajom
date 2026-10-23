@@ -4,12 +4,12 @@ import { ActionForm, DeleteButton, SubmitButton } from "@/components/forms";
 import { EventForm } from "@/components/event-form";
 import { Alert, buttonClass, Card, Field, PageHeader, Select, TextArea } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { EVENT_STATUS_LABELS, VET_TYPES, vetTypeLabel } from "@/lib/calendar";
+import { describeRepeat, EVENT_STATUS_LABELS, VET_TYPES, vetTypeLabel } from "@/lib/calendar";
 import { EXPENSE_CATEGORIES } from "@/lib/expenses";
 import { formatDate, shortTime, todayIso } from "@/lib/format";
 import { getVets, vetOptions } from "@/lib/health";
 import { getTaskTypeOptions } from "@/lib/task-types";
-import { completeEvent, deleteEvent, reopenEvent, updateEvent } from "../actions";
+import { completeEvent, deleteEvent, deleteSeriesFrom, reopenEvent, updateEvent } from "../actions";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -48,6 +48,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
                 {event.vets.phone}
               </a>
             )}
+          </p>
+        )}
+        {event.series_id && (
+          <p>
+            <span className="font-semibold">Ismétlődik:</span> {describeRepeat(event.repeat_rule, event.repeat_interval)}
           </p>
         )}
         {event.location && (
@@ -142,7 +147,16 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         </div>
       </details>
 
-      <DeleteButton action={deleteEvent.bind(null, event.id)} label="Esemény törlése" />
+      <div className="flex flex-wrap gap-2">
+        <DeleteButton action={deleteEvent.bind(null, event.id)} label={event.series_id ? "Csak ez az alkalom törlése" : "Esemény törlése"} />
+        {event.series_id && (
+          <DeleteButton
+            action={deleteSeriesFrom.bind(null, event.series_id, event.event_date)}
+            label="Ez és a későbbi alkalmak törlése"
+            confirmText="Törlöd ezt és a sorozat összes későbbi, még tervezett alkalmát?"
+          />
+        )}
+      </div>
     </>
   );
 }
