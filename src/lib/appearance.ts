@@ -14,6 +14,11 @@ export const ACCENTS = [
   { value: "barack", label: "Barack", swatch: "#b4532a" },
   { value: "lila", label: "Lila", swatch: "#6b3fc9" },
   { value: "rozsa", label: "Rózsa", swatch: "#b8336a" },
+  { value: "turkiz", label: "Türkiz", swatch: "#0f766e" },
+  { value: "ocean", label: "Óceán", swatch: "#0369a1" },
+  { value: "arany", label: "Arany", swatch: "#a16207" },
+  { value: "bordo", label: "Bordó", swatch: "#9f1239" },
+  { value: "grafit", label: "Grafit", swatch: "#475569" },
 ] as const;
 
 export function parseTheme(value: string | undefined) {
