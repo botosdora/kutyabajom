@@ -116,7 +116,7 @@ function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: st
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           aria-label="További lehetőségek"
-          className="flex size-11 shrink-0 items-center justify-center rounded-xl text-text-muted hover:bg-surface-muted"
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-text-muted hover:bg-border"
         >
           <MoreHorizontal size={20} aria-hidden="true" />
         </button>
@@ -125,7 +125,7 @@ function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: st
       {open && (
         <div className="mb-3 ml-14 flex flex-col gap-2">
           {logged ? (
-            <button type="button" onClick={undo} className="h-10 self-start rounded-lg px-3 text-sm font-semibold text-link hover:bg-surface-muted">
+            <button type="button" onClick={undo} className="h-10 self-start rounded-lg bg-primary-soft px-3 text-sm font-semibold text-link hover:opacity-80">
               Visszavonás
             </button>
           ) : (

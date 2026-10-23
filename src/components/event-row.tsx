@@ -29,7 +29,7 @@ export function EventRow({ event, showDate = true }: { event: EventRowData; show
       >
         <span
           className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${
-            event.category === "orvosi" ? "bg-primary-soft text-link" : "bg-warn-soft text-warn-text"
+            event.category === "orvosi" ? "bg-primary-soft text-link" : "bg-surface-muted text-text"
           }`}
         >
           <Icon size={20} aria-hidden="true" />

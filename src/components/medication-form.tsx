@@ -156,7 +156,7 @@ export function MedicationForm({
                 type="button"
                 aria-label="Időpont törlése"
                 onClick={() => setTimes(times.filter((_, j) => j !== i))}
-                className="flex size-11 items-center justify-center rounded-xl text-text-muted hover:bg-surface-muted"
+                className="flex size-11 items-center justify-center rounded-xl bg-surface-muted text-text-muted hover:bg-border"
               >
                 <X size={18} aria-hidden="true" />
               </button>
@@ -166,7 +166,7 @@ export function MedicationForm({
         <button
           type="button"
           onClick={() => setTimes([...times, "20:00"])}
-          className="flex h-10 items-center gap-1 self-start rounded-lg px-2 text-sm font-semibold text-link hover:bg-surface-muted"
+          className="flex h-10 items-center gap-1 self-start rounded-lg bg-primary-soft px-3 text-sm font-semibold text-link hover:opacity-80"
         >
           <Plus size={16} aria-hidden="true" /> Még egy időpont
         </button>

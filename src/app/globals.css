@@ -68,7 +68,18 @@
   --danger-soft: #fdecea;
   --success: #2e7a43;
   --success-soft: #e8f5ec;
+  --warning: #b45309;
+  --warning-soft: #fef3e2;
   --pain: #c2410c;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
+  --grid: #eceef3;
   color-scheme: light;
 }
 
@@ -93,7 +104,18 @@
     --danger-soft: #3b1a1a;
     --success: #6fcf8a;
     --success-soft: #16301f;
+    --warning: #f59e0b;
+    --warning-soft: #3a2a10;
     --pain: #fb923c;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+    --grid: #262c3a;
     color-scheme: dark;
   }
 }
@@ -115,7 +137,18 @@
   --danger-soft: #3b1a1a;
   --success: #6fcf8a;
   --success-soft: #16301f;
+  --warning: #f59e0b;
+  --warning-soft: #3a2a10;
   --pain: #fb923c;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+  --grid: #262c3a;
   color-scheme: dark;
 }
 
@@ -138,7 +171,10 @@
   --color-danger-soft: var(--danger-soft);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
   --color-pain: var(--pain);
+  --color-grid: var(--grid);
   --font-sans: var(--font-inter), system-ui, sans-serif;
 }
 
@@ -147,4 +183,53 @@ body {
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
+}
+
+/* 0–10-es csúszka a naplóban: a kitöltött rész a --fill színű, a hüvelykujj nagy. */
+.scale-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+  --pct: 50%;
+  --fill: var(--primary);
+}
+.scale-range::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--fill) var(--pct), var(--surface-muted) var(--pct));
+}
+.scale-range::-moz-range-track {
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--fill) var(--pct), var(--surface-muted) var(--pct));
+}
+.scale-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 3px solid var(--fill);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.18);
+}
+.scale-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 3px solid var(--fill);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.18);
+}
+.scale-range:focus-visible {
+  outline: none;
+}
+.scale-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--fill) 30%, transparent);
+}
+.scale-range[data-empty="true"] {
+  --fill: var(--border-strong);
 }

@@ -1,5 +1,6 @@
 import { AddPanel, DeleteButton } from "@/components/forms";
-import { Card, EmptyState, Field, PageHeader, SectionTitle } from "@/components/ui";
+import { History, Scale } from "lucide-react";
+import { Card, EmptyState, Field, LoadMore, PageHeader, pageLimit, SectionTitle } from "@/components/ui";
 import { WeightChart } from "@/components/weight-chart";
 import { weightSeries } from "@/lib/charts";
 import { formatDate, formatWeight, todayIso } from "@/lib/format";
@@ -9,13 +10,14 @@ import { addWeight, deleteRecord } from "../actions";
 
 export const metadata = { title: "Súly" };
 
-export default async function WeightPage() {
+export default async function WeightPage({ searchParams }: { searchParams: Promise<{ db?: string }> }) {
   const pet = await requireCurrentPet();
+  const limit = pageLimit((await searchParams).db);
   const weights = await getWeights(pet.id);
 
   return (
     <>
-      <PageHeader title="Súly" subtitle={pet.name} back={{ href: "/egeszseg", label: "Egészség" }} />
+      <PageHeader title="Súly" subtitle={pet.name} back={{ href: "/egeszseg", label: "Egészség" }} icon={Scale} />
 
       <Card className="mb-4">
         <WeightChart data={weightSeries(weights, 60)} height={240} />
@@ -32,12 +34,12 @@ export default async function WeightPage() {
         </AddPanel>
       </div>
 
-      <SectionTitle>Mérések</SectionTitle>
+      <SectionTitle icon={History}>Mérések</SectionTitle>
       {weights.length === 0 ? (
         <EmptyState>Még nincs rögzített mérés.</EmptyState>
       ) : (
         <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
-          {weights.map((w) => (
+          {weights.slice(0, limit).map((w) => (
             <li key={w.id} className="flex items-center gap-3 py-2 pl-4 pr-2">
               <div className="flex-1">
                 <p className="font-semibold">{formatWeight(Number(w.weight_kg))}</p>
@@ -51,6 +53,7 @@ export default async function WeightPage() {
           ))}
         </ul>
       )}
+      <LoadMore shown={Math.min(limit, weights.length)} total={weights.length} href={(n) => `/egeszseg/suly?db=${n}`} />
     </>
   );
 }

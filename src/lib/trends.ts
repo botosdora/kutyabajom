@@ -1,12 +1,13 @@
 import { formatShortDate } from "@/lib/format";
 import type { TrendSeries } from "@/components/trend-chart";
 
-// Színek a skálákhoz; világos és sötét témában is jól elkülönülnek.
+// A validált kategóriás paletta első négy helye, rögzített sorrendben
+// (színtévesztők számára is elkülönülnek, világos és sötét témában is).
 export const TREND_SERIES: TrendSeries[] = [
-  { key: "mood", label: "Kedv", color: "#7c5cd6" },
-  { key: "appetite", label: "Étvágy", color: "#2f8f5b" },
-  { key: "activity", label: "Mozgás", color: "#2f6fd6" },
-  { key: "pain", label: "Fájdalom", color: "#d9622b" },
+  { key: "mood", label: "Kedv", color: "var(--series-1)" },
+  { key: "pain", label: "Fájdalom", color: "var(--series-2)" },
+  { key: "appetite", label: "Étvágy", color: "var(--series-3)" },
+  { key: "activity", label: "Mozgás", color: "var(--series-4)" },
 ];
 
 export function trendData(logs: { day: string; mood: number | null; appetite: number | null; activity: number | null; pain: number | null }[]) {

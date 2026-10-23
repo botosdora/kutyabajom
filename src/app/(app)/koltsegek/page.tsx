@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { DeleteButton } from "@/components/forms";
 import { ExpenseForm } from "@/components/expense-form";
-import { Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
+import { Receipt, Wallet } from "lucide-react";
+import { CostDonut } from "@/components/cost-donut";
+import { Card, EmptyState, LoadMore, PageHeader, pageLimit, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { EXPENSE_CATEGORIES, expenseCategoryLabel } from "@/lib/expenses";
 import { formatDate, formatHuf, todayIso } from "@/lib/format";
@@ -41,10 +43,11 @@ const PERIODS = [
 export default async function ExpensesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ idoszak?: string; tol?: string; ig?: string }>;
+  searchParams: Promise<{ idoszak?: string; tol?: string; ig?: string; db?: string }>;
 }) {
   const pet = await requireCurrentPet();
-  const { idoszak = "honap", tol, ig } = await searchParams;
+  const { idoszak = "honap", tol, ig, db } = await searchParams;
+  const limit = pageLimit(db);
   const today = todayIso();
   const range = periodRange(idoszak, today, tol, ig);
   const supabase = await createClient();
@@ -64,17 +67,20 @@ export default async function ExpensesPage({
 
   const list = items ?? [];
   const total = list.reduce((sum, e) => sum + (e.amount_huf ?? 0), 0);
-  const byCategory = EXPENSE_CATEGORIES.map((c) => ({
-    ...c,
-    sum: list.filter((e) => e.category === c.value).reduce((s, e) => s + (e.amount_huf ?? 0), 0),
+  const slices = EXPENSE_CATEGORIES.map((c) => ({
+    key: c.value,
+    label: c.label,
+    color: c.color,
+    value: list.filter((e) => e.category === c.value).reduce((s, e) => s + (e.amount_huf ?? 0), 0),
   }))
-    .filter((c) => c.sum > 0)
-    .sort((a, b) => b.sum - a.sum);
-  const max = Math.max(1, ...byCategory.map((c) => c.sum));
+    .filter((c) => c.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const colorOf = Object.fromEntries(EXPENSE_CATEGORIES.map((c) => [c.value, c.color]));
+  const query = new URLSearchParams({ idoszak, ...(tol ? { tol } : {}), ...(ig ? { ig } : {}) });
 
   return (
     <>
-      <PageHeader title="Költségek" subtitle={pet.name} />
+      <PageHeader title="Költségek" subtitle={pet.name} icon={Wallet} />
 
       <div className="mb-3 flex flex-wrap gap-2">
         {PERIODS.map((p) => (
@@ -107,24 +113,13 @@ export default async function ExpensesPage({
       )}
 
       <Card className="mb-4">
-        <p className="text-sm text-text-muted">
+        <p className="mb-3 text-sm text-text-muted">
           {formatDate(range.from)} – {formatDate(range.to)}
         </p>
-        <p className="mb-3 text-3xl font-bold">{formatHuf(total)}</p>
-        {byCategory.length > 0 && (
-          <ul className="flex flex-col gap-2.5">
-            {byCategory.map((c) => (
-              <li key={c.value}>
-                <div className="mb-1 flex justify-between text-sm">
-                  <span className="font-medium">{c.label}</span>
-                  <span className="font-semibold">{formatHuf(c.sum)}</span>
-                </div>
-                <div className="h-2 rounded-full bg-surface-muted" aria-hidden="true">
-                  <div className="h-2 rounded-full bg-primary" style={{ width: `${(c.sum / max) * 100}%` }} />
-                </div>
-              </li>
-            ))}
-          </ul>
+        {total > 0 ? (
+          <CostDonut slices={slices} total={total} />
+        ) : (
+          <p className="py-4 text-center text-sm text-text-muted">Ebben az időszakban nincs kiadás.</p>
         )}
       </Card>
 
@@ -140,13 +135,16 @@ export default async function ExpensesPage({
         />
       </div>
 
-      <SectionTitle>Tételek</SectionTitle>
+      <SectionTitle icon={Receipt} action={<span className="text-sm text-text-muted">{list.length} db</span>}>
+        Tételek
+      </SectionTitle>
       {list.length === 0 ? (
         <EmptyState>Ebben az időszakban nincs rögzített kiadás.</EmptyState>
       ) : (
         <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
-          {list.map((e) => (
+          {list.slice(0, limit).map((e) => (
             <li key={`${e.source}-${e.id}`} className="flex items-center gap-3 py-2.5 pl-4 pr-2">
+              <span className="size-2.5 shrink-0 rounded-full" style={{ background: colorOf[e.category ?? ""] }} aria-hidden="true" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold">{e.title}</p>
                 <p className="truncate text-xs text-text-muted">
@@ -160,6 +158,7 @@ export default async function ExpensesPage({
           ))}
         </ul>
       )}
+      <LoadMore shown={Math.min(limit, list.length)} total={list.length} href={(n) => `/koltsegek?${query}&db=${n}`} />
     </>
   );
 }

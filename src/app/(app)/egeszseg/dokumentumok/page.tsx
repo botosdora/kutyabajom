@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { DocumentList } from "@/components/document-list";
 import { DocumentUpload } from "@/components/document-upload";
-import { EmptyState, PageHeader } from "@/components/ui";
+import { FileText } from "lucide-react";
+import { EmptyState, LoadMore, PageHeader, pageLimit } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseKey, supabaseUrl } from "@/lib/supabase/env";
 import { DOC_TYPES } from "@/lib/documents";
@@ -10,9 +11,10 @@ import { requireCurrentPet } from "@/lib/pets";
 
 export const metadata = { title: "Dokumentumok" };
 
-export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ tipus?: string; cimke?: string }> }) {
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ tipus?: string; cimke?: string; db?: string }> }) {
   const pet = await requireCurrentPet();
-  const { tipus, cimke } = await searchParams;
+  const { tipus, cimke, db } = await searchParams;
+  const limit = pageLimit(db);
   const supabase = await createClient();
 
   let query = supabase
@@ -44,7 +46,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <PageHeader title="Dokumentumok" subtitle={pet.name} back={{ href: "/egeszseg", label: "Egészség" }} />
+      <PageHeader title="Dokumentumok" subtitle={pet.name} back={{ href: "/egeszseg", label: "Egészség" }} icon={FileText} />
 
       <div className="mb-4">
         <DocumentUpload
@@ -70,7 +72,12 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         </div>
       )}
 
-      {docs?.length ? <DocumentList docs={docs} /> : <EmptyState>Nincs dokumentum.</EmptyState>}
+      {docs?.length ? <DocumentList docs={docs.slice(0, limit)} /> : <EmptyState>Nincs dokumentum.</EmptyState>}
+      <LoadMore
+        shown={Math.min(limit, docs?.length ?? 0)}
+        total={docs?.length ?? 0}
+        href={(n) => `/egeszseg/dokumentumok?${new URLSearchParams({ ...(tipus ? { tipus } : {}), ...(cimke ? { cimke } : {}), db: String(n) })}`}
+      />
     </>
   );
 }

@@ -1,12 +1,12 @@
 import { BottomNav, SideNav } from "@/components/nav";
 import { PetSwitcher } from "@/components/pet-switcher";
 import { ServiceWorkerRegister } from "@/components/push-settings";
-import { getCurrentPet, getPets } from "@/lib/pets";
+import { getCurrentPet, getPets, petPhotoUrl } from "@/lib/pets";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [pets, current] = await Promise.all([getPets(), getCurrentPet()]);
   const switcher = (
-    <PetSwitcher pets={pets.map((p) => ({ id: p.id, name: p.name }))} currentId={current?.id ?? null} />
+    <PetSwitcher pets={pets.map((p) => ({ id: p.id, name: p.name, photoUrl: petPhotoUrl(p.photo_path) }))} currentId={current?.id ?? null} />
   );
 
   return (

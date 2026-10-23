@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ChevronRight, Pill, Utensils, Wallet } from "lucide-react";
+import { Bell, ChevronRight, Dog, Menu, Palette, Pill, UserRound, Utensils, Wallet } from "lucide-react";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { PetAvatar } from "@/components/pet-switcher";
 import { buttonClass, Card, Field, PageHeader, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { getPets, requireUser } from "@/lib/pets";
+import { getPets, petPhotoUrl, requireUser } from "@/lib/pets";
 import { ACCENT_COOKIE, ACCENTS, parseAccent, parseTheme, THEME_COOKIE, THEMES } from "@/lib/appearance";
 import { cookies } from "next/headers";
 import { setAppearance, updateNotificationSettings, updateProfile } from "../actions";
@@ -32,7 +32,7 @@ export default async function MorePage() {
 
   return (
     <>
-      <PageHeader title="Több" />
+      <PageHeader title="Több" icon={Menu} />
 
       <ul className="mb-6 divide-y divide-border rounded-2xl border border-border bg-surface">
         {MENU.map(({ href, label, icon: Icon }) => (
@@ -47,13 +47,13 @@ export default async function MorePage() {
       </ul>
 
       <section className="mb-6">
-        <SectionTitle action={<Link href="/kutyak/uj" className="text-sm font-semibold text-link">+ Új kutya</Link>}>
+        <SectionTitle icon={Dog} action={<Link href="/kutyak/uj" className="text-sm font-semibold text-link">+ Új kutya</Link>}>
           Kutyáim
         </SectionTitle>
         <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
           {pets.map((p) => (
             <li key={p.id} className="flex items-center gap-3 px-4 py-3">
-              <PetAvatar name={p.name} />
+              <PetAvatar name={p.name} photoUrl={petPhotoUrl(p.photo_path)} />
               <span className="flex-1 font-medium">{p.name}</span>
               <span className="text-sm text-text-muted">{p.breed}</span>
             </li>
@@ -65,7 +65,7 @@ export default async function MorePage() {
       </section>
 
       <section className="mb-6">
-        <SectionTitle>Megjelenés</SectionTitle>
+        <SectionTitle icon={Palette}>Megjelenés</SectionTitle>
         <Card className="flex flex-col gap-4">
           <form action={setAppearance}>
             <p className="mb-1.5 text-sm font-medium">Téma</p>
@@ -111,7 +111,7 @@ export default async function MorePage() {
       </section>
 
       <section className="mb-6">
-        <SectionTitle>Értesítések</SectionTitle>
+        <SectionTitle icon={Bell}>Értesítések</SectionTitle>
         <Card className="flex flex-col gap-4">
           <PushSettings />
           <ActionForm action={updateNotificationSettings} className="flex flex-col gap-3 border-t border-border pt-4">
@@ -146,7 +146,7 @@ export default async function MorePage() {
       </section>
 
       <section className="mb-6">
-        <SectionTitle>Gazdi profil</SectionTitle>
+        <SectionTitle icon={UserRound}>Gazdi profil</SectionTitle>
         <Card>
           <ActionForm action={updateProfile}>
             <Field label="Név" name="full_name" defaultValue={profile?.full_name ?? ""} autoComplete="name" />

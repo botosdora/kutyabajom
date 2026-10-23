@@ -6,6 +6,7 @@ import { Upload } from "lucide-react";
 import { prepareUpload, saveDocument } from "@/app/(app)/egeszseg/dokumentumok/actions";
 import { useToast } from "@/components/toast";
 import { Alert, buttonClass, Field, Select } from "@/components/ui";
+import { compressImage } from "@/lib/image";
 
 type Option = { value: string; label: string };
 
@@ -33,6 +34,7 @@ export function DocumentUpload({
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [stage, setStage] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const toast = useToast();
 
@@ -47,9 +49,15 @@ export function DocumentUpload({
   const submit = (fd: FormData) =>
     startTransition(async () => {
       setError(null);
-      const file = fd.get("file");
-      if (!(file instanceof File) || file.size === 0) return setError("Válassz ki egy fájlt.");
-      if (file.size > 20 * 1024 * 1024) return setError("A fájl legfeljebb 20 MB lehet.");
+      const picked = fd.get("file");
+      if (!(picked instanceof File) || picked.size === 0) return setError("Válassz ki egy fájlt.");
+      setStage("Kép tömörítése…");
+      const file = await compressImage(picked);
+      if (file.size > 20 * 1024 * 1024) {
+        setStage(null);
+        return setError("A fájl legfeljebb 20 MB lehet.");
+      }
+      setStage("Feltöltés…");
 
       const prepared = await prepareUpload(petId, file.name);
       if ("error" in prepared) return setError(prepared.error ?? "Hiba történt.");
@@ -57,7 +65,10 @@ export function DocumentUpload({
       const { error: uploadError } = await storage.uploadToSignedUrl(prepared.path, prepared.token, file, {
         contentType: file.type || undefined,
       });
-      if (uploadError) return setError("A feltöltés nem sikerült. Próbáld újra.");
+      if (uploadError) {
+        setStage(null);
+        return setError("A feltöltés nem sikerült. Próbáld újra.");
+      }
 
       fd.delete("file");
       fd.set("storage_path", prepared.path);
@@ -66,6 +77,7 @@ export function DocumentUpload({
       fd.set("size_bytes", String(file.size));
       if (!fd.get("title")) fd.set("title", file.name.replace(/\.[^.]+$/, ""));
       const result = await saveDocument(null, fd);
+      setStage(null);
       if (result?.error) return setError(result.error);
       toast(result?.message ?? "Elmentve.");
       formRef.current?.reset();
@@ -79,6 +91,7 @@ export function DocumentUpload({
         {medicalEventId && <input type="hidden" name="medical_event_id" value={medicalEventId} />}
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">Fájl (kép vagy PDF)</span>
+          <span className="text-xs text-text-muted">A fotókat feltöltés előtt automatikusan kisebbre tömörítjük.</span>
           <input
             type="file"
             name="file"
@@ -105,7 +118,7 @@ export function DocumentUpload({
         {error && <Alert kind="error">{error}</Alert>}
         <div className="flex gap-2">
           <button type="submit" disabled={pending} className={buttonClass("primary", "flex-1")}>
-            {pending ? "Feltöltés…" : "Feltöltés"}
+            {pending ? (stage ?? "Feltöltés…") : "Feltöltés"}
           </button>
           <button type="button" onClick={() => setOpen(false)} className={buttonClass("ghost")}>
             Mégse

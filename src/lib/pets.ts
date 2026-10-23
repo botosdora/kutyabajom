@@ -3,6 +3,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { supabaseUrl } from "@/lib/supabase/env";
 
 export const CURRENT_PET_COOKIE = "kutya";
 
@@ -36,4 +37,9 @@ export async function requireCurrentPet() {
   const pet = await getCurrentPet();
   if (!pet) redirect("/kutyak/uj");
   return pet;
+}
+
+// A kutyafotó nyilvános címe (véletlen fájlnévvel, így nem kitalálható).
+export function petPhotoUrl(path: string | null) {
+  return path ? `${supabaseUrl}/storage/v1/object/public/pet-photos/${path}` : null;
 }

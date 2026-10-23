@@ -1,4 +1,4 @@
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Mail, MapPin, Phone, UserRound } from "lucide-react";
 import { AddPanel, DeleteButton } from "@/components/forms";
 import { EmptyState, Field, PageHeader, TextArea } from "@/components/ui";
 import { getVets } from "@/lib/health";
@@ -13,7 +13,7 @@ export default async function VetsPage() {
 
   return (
     <>
-      <PageHeader title="Orvosok" subtitle={pet.name} back={{ href: "/egeszseg", label: "Egészség" }} />
+      <PageHeader title="Orvosok" subtitle={pet.name} back={{ href: "/egeszseg", label: "Egészség" }} icon={UserRound} />
 
       <div className="mb-6">
         <AddPanel label="Új orvos" action={addVet}>

@@ -5,9 +5,22 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import { selectPet } from "@/app/(app)/actions";
 
-type PetOption = { id: string; name: string };
+type PetOption = { id: string; name: string; photoUrl: string | null };
 
-export function PetAvatar({ name, size = 32 }: { name: string; size?: number }) {
+export function PetAvatar({ name, size = 32, photoUrl = null }: { name: string; size?: number; photoUrl?: string | null }) {
+  if (photoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={photoUrl}
+        alt=""
+        width={size}
+        height={size}
+        style={{ width: size, height: size }}
+        className="shrink-0 rounded-full object-cover ring-2 ring-surface"
+      />
+    );
+  }
   return (
     <span
       aria-hidden="true"
@@ -54,7 +67,7 @@ export function PetSwitcher({ pets, currentId }: { pets: PetOption[]; currentId:
           pending ? "opacity-60" : ""
         }`}
       >
-        <PetAvatar name={current.name} />
+        <PetAvatar name={current.name} photoUrl={current.photoUrl} />
         <span className="text-[15px] font-semibold">{current.name}</span>
         <ChevronDown size={16} className="text-text-muted" aria-hidden="true" />
       </button>
@@ -74,7 +87,7 @@ export function PetSwitcher({ pets, currentId }: { pets: PetOption[]; currentId:
               }}
               className="flex h-11 w-full items-center gap-2 rounded-xl px-2 text-left text-[15px] hover:bg-surface-muted"
             >
-              <PetAvatar name={p.name} size={28} />
+              <PetAvatar name={p.name} photoUrl={p.photoUrl} size={28} />
               <span className="flex-1">{p.name}</span>
               {p.id === currentId && <Check size={16} className="text-link" aria-hidden="true" />}
             </button>

@@ -1,3 +1,4 @@
+import { Activity, ShieldAlert } from "lucide-react";
 import { AddPanel, DeleteButton } from "@/components/forms";
 import { EmptyState, Field, PageHeader, SectionTitle, TextArea } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
@@ -24,10 +25,10 @@ export default async function AllergiesPage() {
 
   return (
     <>
-      <PageHeader title="Allergiák és betegségek" subtitle={pet.name} back={{ href: "/egeszseg", label: "Egészség" }} />
+      <PageHeader title="Allergiák és betegségek" subtitle={pet.name} back={{ href: "/egeszseg", label: "Egészség" }} icon={ShieldAlert} />
 
       <section className="mb-8">
-        <SectionTitle>Ismert allergiák</SectionTitle>
+        <SectionTitle icon={ShieldAlert}>Ismert allergiák</SectionTitle>
         {allergies?.length ? (
           <ul className="mb-3 divide-y divide-border rounded-2xl border border-border bg-surface">
             {allergies.map((a) => (
@@ -53,7 +54,7 @@ export default async function AllergiesPage() {
       </section>
 
       <section>
-        <SectionTitle>Ismert betegségek</SectionTitle>
+        <SectionTitle icon={Activity}>Ismert betegségek</SectionTitle>
         {conditions?.length ? (
           <ul className="mb-3 divide-y divide-border rounded-2xl border border-border bg-surface">
             {conditions.map((c) => (
@@ -70,7 +71,7 @@ export default async function AllergiesPage() {
                   </p>
                 </div>
                 <form action={toggleCondition.bind(null, c.id, !c.active)}>
-                  <button type="submit" className="h-9 rounded-lg px-2 text-sm font-medium text-link hover:bg-surface-muted">
+                  <button type="submit" className="h-9 rounded-lg bg-primary-soft px-3 text-sm font-medium text-link hover:opacity-80">
                     {c.active ? "Elmúlt" : "Aktív"}
                   </button>
                 </form>

@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { FileDown } from "lucide-react";
+import { BarChart3, FileDown, ListChecks, Sparkles, Toilet } from "lucide-react";
+import { LogEntryCard } from "@/components/log-entry-card";
 import { TrendChart } from "@/components/trend-chart";
-import { ButtonLink, Card, EmptyState, PageHeader, SectionTitle } from "@/components/ui";
+import { ButtonLink, Card, EmptyState, LoadMore, PageHeader, pageLimit, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { addDays, formatDate, formatShortDate, todayIso } from "@/lib/format";
-import { average, OBSERVATIONS, SCALES, STOOL_OPTIONS, stoolLabel, observationLabel } from "@/lib/journal";
+import { SCALE_ICONS } from "@/components/scale-icons";
+import { addDays, formatDate, todayIso } from "@/lib/format";
+import { average, OBSERVATIONS, rateScale, SCALES, STOOL_OPTIONS, TONE_STYLE } from "@/lib/journal";
 import { requireCurrentPet } from "@/lib/pets";
 import { TREND_SERIES, trendData } from "@/lib/trends";
 
@@ -17,9 +19,10 @@ const PRESETS = [
   { days: 90, label: "3 hónap" },
 ];
 
-export default async function JournalReportPage({ searchParams }: { searchParams: Promise<{ tol?: string; ig?: string }> }) {
+export default async function JournalReportPage({ searchParams }: { searchParams: Promise<{ tol?: string; ig?: string; db?: string }> }) {
   const pet = await requireCurrentPet();
-  const { tol, ig } = await searchParams;
+  const { tol, ig, db } = await searchParams;
+  const limit = pageLimit(db);
   const today = todayIso();
   const to = ig && DATE_RE.test(ig) ? ig : today;
   const from = tol && DATE_RE.test(tol) ? tol : addDays(to, -29);
@@ -40,7 +43,7 @@ export default async function JournalReportPage({ searchParams }: { searchParams
 
   return (
     <>
-      <PageHeader title="Napló kimutatás" subtitle={pet.name} back={{ href: "/naplo", label: "Napló" }} />
+      <PageHeader title="Napló kimutatás" subtitle={pet.name} back={{ href: "/naplo", label: "Napló" }} icon={BarChart3} />
 
       <div className="mb-3 flex flex-wrap gap-2">
         {PRESETS.map((p) => {
@@ -87,15 +90,25 @@ export default async function JournalReportPage({ searchParams }: { searchParams
       ) : (
         <>
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {SCALES.map((s) => (
-              <Card key={s.key} className="p-3">
-                <p className="text-xs font-semibold uppercase text-text-muted">{s.label.split(",")[0]}</p>
-                <p className="text-2xl font-bold">
-                  {average(logs.map((l) => l[s.key]))?.toLocaleString("hu-HU") ?? "–"}
-                  <span className="text-xs font-medium text-text-muted"> átlag</span>
-                </p>
-              </Card>
-            ))}
+            {SCALES.map((s) => {
+              const avg = average(logs.map((l) => l[s.key]));
+              const rating = avg === null ? null : rateScale(s.kind, Math.round(avg));
+              const Icon = SCALE_ICONS[s.key];
+              return (
+                <Card key={s.key} className="p-3">
+                  <p className="flex items-center gap-1.5 text-xs font-semibold uppercase text-text-muted">
+                    <Icon size={14} aria-hidden="true" />
+                    {s.short}
+                  </p>
+                  <p className="text-2xl font-bold">{avg?.toLocaleString("hu-HU") ?? "–"}</p>
+                  {rating && (
+                    <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${TONE_STYLE[rating.tone].badge}`}>
+                      átlag: {rating.word}
+                    </span>
+                  )}
+                </Card>
+              );
+            })}
           </div>
 
           <Card className="mb-4">
@@ -104,7 +117,7 @@ export default async function JournalReportPage({ searchParams }: { searchParams
 
           <div className="mb-6 grid gap-3 sm:grid-cols-2">
             <Card>
-              <SectionTitle>Széklet</SectionTitle>
+              <SectionTitle icon={Toilet}>Széklet</SectionTitle>
               <ul className="text-sm">
                 {STOOL_OPTIONS.filter((o) => stoolCounts[o.value]).map((o) => (
                   <li key={o.value} className="flex justify-between py-0.5">
@@ -116,7 +129,7 @@ export default async function JournalReportPage({ searchParams }: { searchParams
               </ul>
             </Card>
             <Card>
-              <SectionTitle>Megfigyelések</SectionTitle>
+              <SectionTitle icon={Sparkles}>Megfigyelések</SectionTitle>
               <ul className="text-sm">
                 {OBSERVATIONS.filter((o) => obsCounts[o.value]).map((o) => (
                   <li key={o.value} className="flex justify-between py-0.5">
@@ -129,27 +142,13 @@ export default async function JournalReportPage({ searchParams }: { searchParams
             </Card>
           </div>
 
-          <SectionTitle>Bejegyzések</SectionTitle>
-          <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
-            {logs.map((l) => (
-              <li key={l.id} className="px-4 py-3 text-sm">
-                <Link href={`/naplo?nap=${l.day}`} className="font-semibold text-link">
-                  {formatShortDate(l.day)}
-                </Link>
-                <p className="text-text-muted">
-                  {SCALES.filter((s) => l[s.key] !== null)
-                    .map((s) => `${s.label.split(",")[0]} ${l[s.key]}`)
-                    .join(" · ")}
-                  {l.pain_duration && ` (fájdalom: ${l.pain_duration})`}
-                  {l.water_ml != null && ` · ${l.water_ml} ml víz`}
-                </p>
-                {(l.stool || l.observations.length > 0) && (
-                  <p className="text-text-muted">{[stoolLabel(l.stool), ...l.observations.map(observationLabel)].filter(Boolean).join(", ")}</p>
-                )}
-                {l.notes && <p className="mt-1 whitespace-pre-line">{l.notes}</p>}
-              </li>
+          <SectionTitle icon={ListChecks}>Bejegyzések</SectionTitle>
+          <ul className="flex flex-col gap-3">
+            {logs.slice(0, limit).map((l) => (
+              <LogEntryCard key={l.id} log={l} />
             ))}
           </ul>
+          <LoadMore shown={Math.min(limit, logs.length)} total={logs.length} href={(n) => `/naplo/kimutatas?tol=${from}&ig=${to}&db=${n}`} />
         </>
       )}
     </>

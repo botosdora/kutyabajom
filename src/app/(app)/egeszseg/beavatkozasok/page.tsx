@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Stethoscope } from "lucide-react";
 import { AddPanel } from "@/components/forms";
 import { MedicalEventFields } from "@/components/medical-event-fields";
-import { EmptyState, PageHeader } from "@/components/ui";
+import { EmptyState, LoadMore, PageHeader, pageLimit } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, todayIso } from "@/lib/format";
 import { EVENT_KINDS, eventKindLabel, getVets, vetOptions } from "@/lib/health";
@@ -11,8 +11,9 @@ import { addMedicalEvent } from "../actions";
 
 export const metadata = { title: "Orvosi beavatkozások" };
 
-export default async function MedicalEventsPage() {
+export default async function MedicalEventsPage({ searchParams }: { searchParams: Promise<{ db?: string }> }) {
   const pet = await requireCurrentPet();
+  const limit = pageLimit((await searchParams).db);
   const supabase = await createClient();
   const [{ data: events }, vets] = await Promise.all([
     supabase
@@ -25,14 +26,14 @@ export default async function MedicalEventsPage() {
 
   // Évenként csoportosítva, a legfrissebb elöl.
   const byYear = new Map<string, NonNullable<typeof events>>();
-  for (const e of events ?? []) {
+  for (const e of (events ?? []).slice(0, limit)) {
     const year = e.event_date.slice(0, 4);
     byYear.set(year, [...(byYear.get(year) ?? []), e]);
   }
 
   return (
     <>
-      <PageHeader title="Orvosi beavatkozások" subtitle={pet.name} back={{ href: "/egeszseg", label: "Egészség" }} />
+      <PageHeader title="Orvosi beavatkozások" subtitle={pet.name} back={{ href: "/egeszseg", label: "Egészség" }} icon={Stethoscope} />
 
       <div className="mb-6">
         <AddPanel label="Új esemény" action={addMedicalEvent}>
@@ -73,6 +74,7 @@ export default async function MedicalEventsPage() {
           </section>
         ))
       )}
+      <LoadMore shown={Math.min(limit, events?.length ?? 0)} total={events?.length ?? 0} href={(n) => `/egeszseg/beavatkozasok?db=${n}`} />
     </>
   );
 }

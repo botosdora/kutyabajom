@@ -1,8 +1,11 @@
+import { Dog, ShieldAlert, Users } from "lucide-react";
 import { ActionForm, DeleteButton, SubmitButton } from "@/components/forms";
 import { PetFields } from "@/components/pet-fields";
 import { Card, Field, PageHeader, SectionTitle, TextArea } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentPet, requireUser } from "@/lib/pets";
+import { petPhotoUrl, requireCurrentPet, requireUser } from "@/lib/pets";
+import { PetPhotoUpload } from "@/components/pet-photo-upload";
+import { supabaseKey, supabaseUrl } from "@/lib/supabase/env";
 import { addMember, deletePet, removeMember, updatePet } from "../actions";
 
 export const metadata = { title: "Kutya adatai" };
@@ -15,7 +18,17 @@ export default async function PetSettingsPage() {
 
   return (
     <>
-      <PageHeader title={`${pet.name} adatai`} back={{ href: "/egeszseg", label: "Egészség" }} />
+      <PageHeader title={`${pet.name} adatai`} back={{ href: "/egeszseg", label: "Egészség" }} icon={Dog} />
+
+      <Card className="mb-4">
+        <PetPhotoUpload
+          petId={pet.id}
+          name={pet.name}
+          photoUrl={petPhotoUrl(pet.photo_path)}
+          supabaseUrl={supabaseUrl}
+          supabaseKey={supabaseKey}
+        />
+      </Card>
 
       <Card className="mb-6">
         <ActionForm action={updatePet}>
@@ -27,7 +40,7 @@ export default async function PetSettingsPage() {
       </Card>
 
       <section className="mb-6">
-        <SectionTitle>Gazdák</SectionTitle>
+        <SectionTitle icon={Users}>Gazdák</SectionTitle>
         <p className="mb-3 text-sm text-text-muted">
           A társgazdák mindent látnak és szerkeszthetnek ennél a kutyánál.
         </p>
@@ -68,7 +81,7 @@ export default async function PetSettingsPage() {
 
       {isOwner && (
         <section>
-          <SectionTitle>Veszélyzóna</SectionTitle>
+          <SectionTitle icon={ShieldAlert}>Veszélyzóna</SectionTitle>
           <DeleteButton
             action={deletePet.bind(null, pet.id)}
             label={`${pet.name} és minden adatának törlése`}

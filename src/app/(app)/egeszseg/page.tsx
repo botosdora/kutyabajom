@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ChevronRight, FileDown, FileText, Pill, Scale, ShieldAlert, Stethoscope, Syringe, UserRound } from "lucide-react";
+import { ChevronRight, FileDown, FileText, HeartPulse, Pill, Scale, ShieldAlert, Stethoscope, Syringe, UserRound } from "lucide-react";
 import { PetAvatar } from "@/components/pet-switcher";
 import { ButtonLink, Card, PageHeader } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentPet } from "@/lib/pets";
+import { petPhotoUrl, requireCurrentPet } from "@/lib/pets";
 import { formatAge, formatWeight } from "@/lib/format";
 
 export const metadata = { title: "Egészség" };
@@ -63,6 +63,7 @@ export default async function HealthPage() {
     <>
       <PageHeader
         title="Egészség"
+        icon={HeartPulse}
         action={
           <ButtonLink href="/export/egeszseg" variant="secondary" prefetch={false} target="_blank">
             <FileDown size={18} aria-hidden="true" /> Összesítő PDF
@@ -72,11 +73,11 @@ export default async function HealthPage() {
 
       <Card className="mb-6">
         <div className="mb-4 flex items-center gap-3">
-          <PetAvatar name={pet.name} size={48} />
+          <PetAvatar name={pet.name} photoUrl={petPhotoUrl(pet.photo_path)} size={56} />
           <div className="flex-1">
             <p className="text-lg font-bold">{pet.name}</p>
             <Link href="/kutya" className="text-sm font-medium text-link hover:opacity-80">
-              Adatok szerkesztése
+              Adatok és fotó szerkesztése
             </Link>
           </div>
         </div>

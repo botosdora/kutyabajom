@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ClipboardList, NotebookPen, ShoppingBag, Stethoscope, Syringe, Utensils } from "lucide-react";
+import { BellRing, CalendarDays, ClipboardList, ListTodo, MessageCircleQuestion, NotebookPen, ShoppingBag, Stethoscope, Syringe, TrendingUp, Utensils } from "lucide-react";
 import { TrendChart } from "@/components/trend-chart";
 import { TREND_SERIES, trendData } from "@/lib/trends";
 import { EventRow, type EventRowData } from "@/components/event-row";
 import { REMIND_DAYS, vetTypeLabel } from "@/lib/calendar";
+import { EXPENSE_CATEGORIES } from "@/lib/expenses";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { TodayList, type TodayItem } from "@/components/today-list";
 import { WeightChart } from "@/components/weight-chart";
@@ -95,9 +96,8 @@ export default async function DashboardPage() {
       .lte("event_date", addDays(today, REMIND_DAYS.orvosi)),
     supabase
       .from("all_expenses")
-      .select("amount_huf")
+      .select("amount_huf, category")
       .eq("pet_id", pet.id)
-      .eq("category", "allatorvos")
       .gte("spent_on", monthStart)
       .lte("spent_on", today),
     supabase
@@ -184,7 +184,11 @@ export default async function DashboardPage() {
         date: e.event_date,
       })),
   ].sort((a, b) => a.days - b.days);
-  const monthVetCost = (vetCosts ?? []).reduce((sum, c) => sum + (c.amount_huf ?? 0), 0);
+  const monthCost = (vetCosts ?? []).reduce((sum, c) => sum + (c.amount_huf ?? 0), 0);
+  const costByCategory = EXPENSE_CATEGORIES.map((c) => ({
+    ...c,
+    sum: (vetCosts ?? []).filter((e) => e.category === c.value).reduce((s, e) => s + (e.amount_huf ?? 0), 0),
+  })).filter((c) => c.sum > 0);
   const monthName = new Intl.DateTimeFormat("hu-HU", { month: "long", timeZone: "Europe/Budapest" }).format(new Date());
 
   const latest = weights[0];
@@ -208,6 +212,7 @@ export default async function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         <section>
           <SectionTitle
+            icon={ListTodo}
             action={
               <span className="text-sm text-text-muted">
                 {doneCount} / {items.length}
@@ -235,7 +240,7 @@ export default async function DashboardPage() {
 
           {!!pendingEvents?.length && (
             <div className="mt-6">
-              <SectionTitle>Visszajelzésre vár</SectionTitle>
+              <SectionTitle icon={MessageCircleQuestion}>Visszajelzésre vár</SectionTitle>
               <p className="mb-2 text-sm text-text-muted">Megtörtént? Koppints rá, és rögzítsd.</p>
               <ul className="flex flex-col gap-2">
                 {(pendingEvents as EventRowData[]).map((e) => (
@@ -247,6 +252,7 @@ export default async function DashboardPage() {
 
           <div className="mt-6">
             <SectionTitle
+              icon={CalendarDays}
               action={
                 <Link href={`/naptar/uj?nap=${today}`} className="text-sm font-semibold text-link">
                   + Új
@@ -269,7 +275,7 @@ export default async function DashboardPage() {
 
         <div className="flex flex-col gap-6">
           <section>
-            <SectionTitle>Előttünk</SectionTitle>
+            <SectionTitle icon={BellRing}>Előttünk</SectionTitle>
             {reminders.length ? (
               <ul className="flex flex-col gap-2">
                 {reminders.map((r) => {
@@ -301,13 +307,31 @@ export default async function DashboardPage() {
           </section>
 
           <Link href="/koltsegek" className="block rounded-2xl border border-border bg-surface p-4 hover:bg-surface-muted">
-            <p className="text-xs font-semibold uppercase text-text-muted">Állatorvosi költség, {monthName}</p>
-            <p className="text-2xl font-bold">{formatHuf(monthVetCost)}</p>
-            <p className="text-sm font-medium text-link">Összes költség →</p>
+            <p className="text-xs font-semibold uppercase text-text-muted">Költségek, {monthName}</p>
+            <p className="text-2xl font-bold">{formatHuf(monthCost)}</p>
+            {monthCost > 0 && (
+              <>
+                <div className="mt-2 flex h-2.5 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
+                  {costByCategory.map((c) => (
+                    <span key={c.value} style={{ width: `${(c.sum / monthCost) * 100}%`, background: c.color }} />
+                  ))}
+                </div>
+                <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                  {costByCategory.map((c) => (
+                    <li key={c.value} className="flex items-center gap-1.5">
+                      <span className="size-2 rounded-full" style={{ background: c.color }} aria-hidden="true" />
+                      <span className="text-text-muted">{c.label}</span>
+                      <span className="font-semibold">{formatHuf(c.sum)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            <p className="mt-2 text-sm font-medium text-link">Összes költség →</p>
           </Link>
 
           <section>
-            <SectionTitle action={<span className="text-xs text-text-muted">utolsó mérések</span>}>
+            <SectionTitle icon={TrendingUp} action={<span className="text-xs text-text-muted">utolsó mérések</span>}>
               Trendek
             </SectionTitle>
             <Card>

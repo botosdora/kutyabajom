@@ -812,6 +812,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          photo_path: string | null
           sex: string | null
         }
         Insert: {
@@ -825,6 +826,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          photo_path?: string | null
           sex?: string | null
         }
         Update: {
@@ -838,6 +840,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          photo_path?: string | null
           sex?: string | null
         }
         Relationships: []

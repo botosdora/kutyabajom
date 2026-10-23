@@ -1,3 +1,4 @@
+import { History, Pill, ShoppingBag } from "lucide-react";
 import { notFound } from "next/navigation";
 import { AddPanel, DeleteButton } from "@/components/forms";
 import { MedicationForm } from "@/components/medication-form";
@@ -35,6 +36,7 @@ export default async function MedicationPage({ params }: { params: Promise<{ id:
         title={med.name}
         subtitle={`${categoryLabel(med.category)}${med.active ? "" : " · nem szedi"}`}
         back={{ href: "/gyogyszerek", label: "Gyógyszerek" }}
+        icon={Pill}
       />
 
       <Card className="mb-6">
@@ -76,7 +78,7 @@ export default async function MedicationPage({ params }: { params: Promise<{ id:
       </details>
 
       <section className="mb-6">
-        <SectionTitle action={totalCost > 0 && <span className="text-sm text-text-muted">Összesen: {formatHuf(totalCost)}</span>}>
+        <SectionTitle icon={ShoppingBag} action={totalCost > 0 && <span className="text-sm text-text-muted">Összesen: {formatHuf(totalCost)}</span>}>
           Vásárlások
         </SectionTitle>
         {purchases?.length ? (
@@ -110,7 +112,7 @@ export default async function MedicationPage({ params }: { params: Promise<{ id:
       </section>
 
       <section className="mb-8">
-        <SectionTitle>Legutóbbi alkalmak</SectionTitle>
+        <SectionTitle icon={History}>Legutóbbi alkalmak</SectionTitle>
         {logs?.length ? (
           <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
             {logs.map((l) => (

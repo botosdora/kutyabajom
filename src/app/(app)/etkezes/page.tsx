@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { Ban, Bone, ChevronRight, Clock, Utensils } from "lucide-react";
 import { ActionForm, AddPanel, SubmitButton } from "@/components/forms";
 import { FoodFields } from "@/components/food-fields";
 import { Card, EmptyState, Field, PageHeader, SectionTitle, TextArea } from "@/components/ui";
@@ -47,13 +47,13 @@ export default async function FeedingPage() {
 
   return (
     <>
-      <PageHeader title="Étkezés" subtitle={pet.name} />
+      <PageHeader title="Étkezés" subtitle={pet.name} icon={Utensils} />
 
       {FOOD_KINDS.map((k) => {
         const list = active.filter((f) => f.kind === k.value);
         return (
           <section key={k.value} className="mb-6">
-            <SectionTitle>{k.value === "tap" ? "Jelenlegi tápok" : "Jutalomfalatok"}</SectionTitle>
+            <SectionTitle icon={k.value === "tap" ? Utensils : Bone}>{k.value === "tap" ? "Jelenlegi tápok" : "Jutalomfalatok"}</SectionTitle>
             {list.length ? (
               <ul className="flex flex-col gap-2">
                 {list.map((f) => (
@@ -75,7 +75,7 @@ export default async function FeedingPage() {
       </div>
 
       <section className="mb-6">
-        <SectionTitle>Nem bevált tápok</SectionTitle>
+        <SectionTitle icon={Ban}>Nem bevált tápok</SectionTitle>
         <p className="mb-2 text-sm text-text-muted">Amit korábban kipróbáltatok, de nem vált be – hogy legközelebb ne vegyétek meg újra.</p>
         {failed.length > 0 && (
           <ul className="mb-3 flex flex-col gap-2">
@@ -104,7 +104,7 @@ export default async function FeedingPage() {
       )}
 
       <section>
-        <SectionTitle>Etetési időpontok</SectionTitle>
+        <SectionTitle icon={Clock}>Etetési időpontok</SectionTitle>
         <Card>
           <ActionForm action={updateMealTimes}>
             <input type="hidden" name="pet_id" value={pet.id} />

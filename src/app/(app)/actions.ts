@@ -174,3 +174,20 @@ export async function updateNotificationSettings(_: ActionResult, formData: Form
   revalidatePath("/tobb");
   return { message: "Elmentve." };
 }
+
+// Kutyafotó: aláírt feltöltési cím a nyilvános fotótárolóba.
+export async function preparePetPhotoUpload(petId: string) {
+  const path = `${petId}/${crypto.randomUUID()}.jpg`;
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage.from("pet-photos").createSignedUploadUrl(path);
+  if (error || !data) return { error: "Nem sikerült előkészíteni a feltöltést." };
+  return { path: data.path, token: data.token };
+}
+
+export async function setPetPhoto(petId: string, path: string | null) {
+  const supabase = await createClient();
+  const { data: pet } = await supabase.from("pets").select("photo_path").eq("id", petId).single();
+  await supabase.from("pets").update({ photo_path: path }).eq("id", petId);
+  if (pet?.photo_path && pet.photo_path !== path) await supabase.storage.from("pet-photos").remove([pet.photo_path]);
+  revalidatePath("/", "layout");
+}

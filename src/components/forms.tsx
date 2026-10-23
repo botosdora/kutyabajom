@@ -123,7 +123,7 @@ export function DeleteButton({
           type="submit"
           aria-label="Törlés"
           title="Törlés"
-          className="flex size-11 items-center justify-center rounded-xl text-text-muted hover:bg-danger-soft hover:text-danger"
+          className="flex size-10 items-center justify-center rounded-xl bg-surface-muted text-text-muted hover:bg-danger-soft hover:text-danger"
         >
           <Trash2 size={18} aria-hidden="true" />
         </button>

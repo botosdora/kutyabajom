@@ -47,6 +47,7 @@ export default async function MedicationsPage() {
     <>
       <PageHeader
         title="Gyógyszerek"
+        icon={Pill}
         subtitle={pet.name}
         back={{ href: "/egeszseg", label: "Egészség" }}
         action={

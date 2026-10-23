@@ -1,10 +1,11 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { optional, optionalNumber, required } from "@/lib/form";
-import { medicalKindFor, vetTypeLabel } from "@/lib/calendar";
+import { CALENDAR_FILTER_COOKIE, medicalKindFor, vetTypeLabel } from "@/lib/calendar";
 import type { ActionResult } from "@/components/forms";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -161,4 +162,14 @@ export async function completeEvent(_: ActionResult, fd: FormData): Promise<Acti
   // Vizsgálat után a beavatkozás oldalán csatolható a kórlap vagy a lelet.
   if (medicalEventId && !event.medical_event_id) redirect(`/egeszseg/beavatkozasok/${medicalEventId}?uj=1`);
   return { message: "Rögzítve." };
+}
+
+// A naptárban megjelenő elemek (orvosi, feladat, gyógyszer) ki-be kapcsolása.
+export async function toggleCalendarFilter(kind: string) {
+  const store = await cookies();
+  const current = new Set((store.get(CALENDAR_FILTER_COOKIE)?.value ?? "orvosi,feladat").split(",").filter(Boolean));
+  if (current.has(kind)) current.delete(kind);
+  else current.add(kind);
+  store.set(CALENDAR_FILTER_COOKIE, [...current].join(",") || "-", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+  revalidatePath("/naptar");
 }
