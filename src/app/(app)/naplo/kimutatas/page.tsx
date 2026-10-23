@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BarChart3, FileDown, ListChecks, Sparkles, Toilet } from "lucide-react";
 import { LogEntryCard } from "@/components/log-entry-card";
+import { getDoseSummaries } from "@/lib/day-items";
 import { TrendChart } from "@/components/trend-chart";
 import { ButtonLink, Card, EmptyState, LoadMore, PageHeader, pageLimit, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
@@ -35,6 +36,7 @@ export default async function JournalReportPage({ searchParams }: { searchParams
     .lte("day", to)
     .order("day", { ascending: false });
   const logs = data ?? [];
+  const summaries = await getDoseSummaries(pet.id, from, to);
 
   const counts = (values: string[]) =>
     values.reduce<Record<string, number>>((acc, v) => ({ ...acc, [v]: (acc[v] ?? 0) + 1 }), {});
@@ -145,7 +147,7 @@ export default async function JournalReportPage({ searchParams }: { searchParams
           <SectionTitle icon={ListChecks}>Bejegyzések</SectionTitle>
           <ul className="flex flex-col gap-3">
             {logs.slice(0, limit).map((l) => (
-              <LogEntryCard key={l.id} log={l} />
+              <LogEntryCard key={l.id} log={l} doses={summaries.get(l.day)} />
             ))}
           </ul>
           <LoadMore shown={Math.min(limit, logs.length)} total={logs.length} href={(n) => `/naplo/kimutatas?tol=${from}&ig=${to}&db=${n}`} />

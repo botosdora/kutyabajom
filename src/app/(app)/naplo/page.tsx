@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, ChevronLeft, ChevronRight, History, NotebookPen } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight, History, ListTodo, NotebookPen } from "lucide-react";
 import { LogEntryCard } from "@/components/log-entry-card";
 import { LogForm } from "@/components/log-form";
 import { ButtonLink, Card, EmptyState, LoadMore, PageHeader, pageLimit, SectionTitle } from "@/components/ui";
@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { addDays, formatDate, todayIso } from "@/lib/format";
 import { requireCurrentPet } from "@/lib/pets";
 import { saveLog } from "./actions";
+import { TodayList } from "@/components/today-list";
+import { getDayItems, getDoseSummaries } from "@/lib/day-items";
 
 export const metadata = { title: "Napló" };
 
@@ -18,7 +20,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
   const day = nap && /^\d{4}-\d{2}-\d{2}$/.test(nap) && nap <= today ? nap : today;
   const supabase = await createClient();
 
-  const [{ data: log }, { data: recent, count }] = await Promise.all([
+  const [{ data: log }, { data: recent, count }, dayItems] = await Promise.all([
     supabase.from("daily_logs").select("*").eq("pet_id", pet.id).eq("day", day).maybeSingle(),
     supabase
       .from("daily_logs")
@@ -27,7 +29,11 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
       .neq("day", day)
       .order("day", { ascending: false })
       .limit(limit),
+    getDayItems(pet, day),
   ]);
+  const summaries = recent?.length
+    ? await getDoseSummaries(pet.id, recent[recent.length - 1].day, recent[0].day)
+    : new Map();
 
   return (
     <>
@@ -59,6 +65,15 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
         )}
       </div>
 
+      <section className="mb-6">
+        <SectionTitle icon={ListTodo}>Aznapi gyógyszerek és etetés</SectionTitle>
+        <p className="mb-2 text-sm text-text-muted">
+          {day === today ? "Itt is kipipálhatod a mai teendőket." : "Utólag is rögzítheted: mi ment be, mi maradt ki."}
+        </p>
+        <TodayList items={dayItems.items} petId={pet.id} day={day} />
+      </section>
+
+      <SectionTitle icon={NotebookPen}>Megfigyelések</SectionTitle>
       <Card className="mb-8">
         <LogForm key={day} action={saveLog} petId={pet.id} day={day} log={log} />
       </Card>
@@ -68,7 +83,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
         <>
           <ul className="flex flex-col gap-3">
             {recent.map((l) => (
-              <LogEntryCard key={l.id} log={l} />
+              <LogEntryCard key={l.id} log={l} doses={summaries.get(l.day)} />
             ))}
           </ul>
           <LoadMore shown={recent.length} total={count ?? 0} href={(n) => `/naplo?nap=${day}&db=${n}`} />

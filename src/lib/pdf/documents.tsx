@@ -8,6 +8,7 @@ import { categoryLabel, describeSchedule, MED_CATEGORIES } from "@/lib/medicatio
 import type { Tables } from "@/lib/database.types";
 import { formatLabValue, formatRange, labStatus } from "@/lib/labs";
 import { Empty, PdfDoc, s, Section, Table } from "./base";
+import { getDoseSummaries } from "@/lib/day-items";
 
 type Pet = Tables<"pets">;
 
@@ -229,6 +230,7 @@ export async function journalPdf(pet: Pet, from: string, to: string) {
     .lte("day", to)
     .order("day");
   const logs = data ?? [];
+  const doseSummaries = await getDoseSummaries(pet.id, from, to);
   const count = (pred: (l: Tables<"daily_logs">) => boolean) => logs.filter(pred).length;
 
   return renderToBuffer(
@@ -261,14 +263,15 @@ export async function journalPdf(pet: Pet, from: string, to: string) {
           <Section title="Napi bejegyzések">
             <Table
               columns={[
-                { label: "Dátum", width: "13%" },
-                { label: "Kedv", width: "7%" },
-                { label: "Étvágy", width: "9%" },
-                { label: "Mozgás", width: "10%" },
-                { label: "Fájd.", width: "9%" },
-                { label: "Ivás", width: "9%" },
-                { label: "Széklet", width: "12%" },
-                { label: "Megfigyelések, leírás", width: "31%" },
+                { label: "Dátum", width: "12%" },
+                { label: "Kedv", width: "6%" },
+                { label: "Étvágy", width: "8%" },
+                { label: "Mozgás", width: "9%" },
+                { label: "Fájd.", width: "8%" },
+                { label: "Ivás", width: "8%" },
+                { label: "Széklet", width: "11%" },
+                { label: "Gyógyszer", width: "10%" },
+                { label: "Megfigyelések, leírás", width: "28%" },
               ]}
               rows={logs.map((l) => [
                 formatDate(l.day).replace(/^\d{4}\. /, ""),
@@ -278,6 +281,10 @@ export async function journalPdf(pet: Pet, from: string, to: string) {
                 [l.pain?.toString(), l.pain_duration && `(${l.pain_duration})`].filter(Boolean).join(" "),
                 [l.water?.toString(), l.water_ml != null && `${l.water_ml} ml`].filter(Boolean).join(" "),
                 stoolLabel(l.stool),
+                (() => {
+                  const d = doseSummaries.get(l.day);
+                  return d && d.total ? `${d.given}/${d.total}` : null;
+                })(),
                 [l.observations.map(observationLabel).join(", "), l.notes].filter(Boolean).join("\n"),
               ])}
             />

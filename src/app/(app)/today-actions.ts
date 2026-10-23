@@ -15,21 +15,30 @@ export async function logDose(
   scheduledFor: string,
   status: DoseStatus,
   actualTime?: string,
+  day?: string,
 ) {
   const supabase = await createClient();
+  // Utólagos rögzítésnél (korábbi nap) a beadás ideje alapból a tervezett időpont.
+  const pastDay = day && day !== todayIso();
   const givenAt =
-    status !== "given" ? null : actualTime ? budapestToIso(todayIso(), actualTime) : new Date().toISOString();
+    status !== "given"
+      ? null
+      : actualTime
+        ? budapestToIso(day ?? todayIso(), actualTime)
+        : pastDay
+          ? scheduledFor
+          : new Date().toISOString();
   await supabase.from("dose_logs").upsert(
     { pet_id: petId, medication_id: medicationId, scheduled_for: scheduledFor, status, given_at: givenAt },
     { onConflict: "medication_id,scheduled_for" },
   );
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }
 
 export async function undoDose(logId: string) {
   const supabase = await createClient();
   await supabase.from("dose_logs").delete().eq("id", logId);
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }
 
 export async function logMeal(petId: string, day: string, meal: "reggeli" | "vacsora", status: MealStatus) {
@@ -37,11 +46,11 @@ export async function logMeal(petId: string, day: string, meal: "reggeli" | "vac
   await supabase
     .from("meal_logs")
     .upsert({ pet_id: petId, day, meal, status, logged_at: new Date().toISOString() }, { onConflict: "pet_id,day,meal" });
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }
 
 export async function undoMeal(logId: string) {
   const supabase = await createClient();
   await supabase.from("meal_logs").delete().eq("id", logId);
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }

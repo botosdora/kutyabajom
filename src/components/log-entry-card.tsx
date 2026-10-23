@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Pill } from "lucide-react";
+import type { DoseSummary } from "@/lib/day-items";
 import { SCALE_ICONS } from "@/components/scale-icons";
 import { observationLabel, rateScale, SCALES, stoolLabel, TONE_STYLE } from "@/lib/journal";
 import type { Tables } from "@/lib/database.types";
@@ -8,7 +9,7 @@ const weekday = new Intl.DateTimeFormat("hu-HU", { weekday: "long", timeZone: "U
 const monthDay = new Intl.DateTimeFormat("hu-HU", { month: "long", day: "numeric", timeZone: "UTC" });
 
 // Egy naplóbejegyzés áttekinthető kártyán: értékek csempékben, megfigyelések címkékben.
-export function LogEntryCard({ log }: { log: Tables<"daily_logs"> }) {
+export function LogEntryCard({ log, doses }: { log: Tables<"daily_logs">; doses?: DoseSummary }) {
   const date = new Date(`${log.day}T12:00:00Z`);
   const tags = [stoolLabel(log.stool) && `Széklet: ${stoolLabel(log.stool)}`, ...log.observations.map(observationLabel)].filter(
     Boolean,
@@ -66,6 +67,18 @@ export function LogEntryCard({ log }: { log: Tables<"daily_logs"> }) {
               </span>
             ))}
           </div>
+        )}
+
+        {doses && doses.total > 0 && (
+          <p className="mt-3 flex items-start gap-2 text-sm">
+            <Pill size={16} className="mt-0.5 shrink-0 text-link" aria-hidden="true" />
+            <span>
+              <span className={`font-semibold ${doses.given === doses.total ? "text-success" : ""}`}>
+                {doses.given} / {doses.total} adag beadva
+              </span>
+              {doses.missed.length > 0 && <span className="text-text-muted"> · nincs rögzítve vagy kimaradt: {doses.missed.join(", ")}</span>}
+            </span>
+          </p>
         )}
 
         {log.notes && <p className="mt-3 whitespace-pre-line rounded-xl bg-surface-muted px-3 py-2 text-sm">{log.notes}</p>}

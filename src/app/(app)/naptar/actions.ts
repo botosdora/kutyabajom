@@ -124,11 +124,11 @@ export async function addQuickTask(_: ActionResult, fd: FormData): Promise<Actio
   return { message: "Teendő hozzáadva." };
 }
 
-export async function setTaskStatus(id: string, status: "planned" | "done" | "missed") {
+export async function setTaskStatus(id: string, status: "planned" | "done" | "missed", day?: string) {
   const supabase = await createClient();
   await supabase
     .from("calendar_events")
-    .update({ status, completed_on: status === "done" ? todayIso() : null })
+    .update({ status, completed_on: status === "done" ? (day ?? todayIso()) : null })
     .eq("id", id);
   revalidatePath("/", "layout");
 }

@@ -71,9 +71,9 @@ function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: st
   const complete = (actualTime?: string) =>
     run(() =>
       item.kind === "dose"
-        ? logDose(petId, item.medicationId, item.scheduledFor, "given", actualTime)
+        ? logDose(petId, item.medicationId, item.scheduledFor, "given", actualTime, day)
         : item.kind === "task"
-          ? setTaskStatus(item.eventId, "done")
+          ? setTaskStatus(item.eventId, "done", day)
           : logMeal(petId, day, item.meal, "eaten"),
     );
   const undo = () =>
@@ -160,10 +160,10 @@ function TaskRow({ item, petId, day }: { item: TodayItem; petId: string; day: st
                   <OptionButton onClick={() => setShowTime((v) => !v)}>
                     <Clock size={15} aria-hidden="true" /> Más időpontban
                   </OptionButton>
-                  <OptionButton onClick={() => run(() => logDose(petId, item.medicationId, item.scheduledFor, "missed"))}>
+                  <OptionButton onClick={() => run(() => logDose(petId, item.medicationId, item.scheduledFor, "missed", undefined, day))}>
                     Nem kapta meg
                   </OptionButton>
-                  <OptionButton onClick={() => run(() => logDose(petId, item.medicationId, item.scheduledFor, "refused"))}>
+                  <OptionButton onClick={() => run(() => logDose(petId, item.medicationId, item.scheduledFor, "refused", undefined, day))}>
                     Elutasította
                   </OptionButton>
                 </>
@@ -226,6 +226,9 @@ function OptionButton({ onClick, children }: { onClick: () => void; children: Re
 }
 
 export function TodayList({ items, petId, day }: { items: TodayItem[]; petId: string; day: string }) {
+  if (items.length === 0) {
+    return <p className="rounded-2xl border border-dashed border-border-strong px-4 py-6 text-center text-sm text-text-muted">Erre a napra nincs teendő.</p>;
+  }
   return (
     <ul className="rounded-2xl border border-border bg-surface px-1">
       {items.map((item) => (

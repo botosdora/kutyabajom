@@ -8,7 +8,7 @@ import { EXPENSE_CATEGORIES } from "@/lib/expenses";
 import { AddPanel } from "@/components/forms";
 import { Card, EmptyState, Field, SectionTitle } from "@/components/ui";
 import { addQuickTask } from "./naptar/actions";
-import { TodayList, type TodayItem } from "@/components/today-list";
+import { TodayList } from "@/components/today-list";
 import { WeightChart } from "@/components/weight-chart";
 import { weightSeries } from "@/lib/charts";
 import {
@@ -16,12 +16,11 @@ import {
   daysBetween,
   formatHuf,
   formatShortDate,
-  formatTime,
   formatWeight,
   inDaysLabel,
-  shortTime,
   todayIso,
 } from "@/lib/format";
+import { getDayItems } from "@/lib/day-items";
 import { getWeights } from "@/lib/health";
 import { requireCurrentPet } from "@/lib/pets";
 import { createClient } from "@/lib/supabase/server";
@@ -53,11 +52,9 @@ export default async function DashboardPage() {
   const monthStart = `${today.slice(0, 7)}-01`;
   const [
     weights,
-    { data: doses },
-    { data: meals },
     { data: reorders },
     { data: expiring },
-    { data: todayEvents },
+    dayItems,
     { data: pendingEvents },
     { data: upcomingEvents },
     { data: vetCosts },
@@ -65,8 +62,6 @@ export default async function DashboardPage() {
     { data: recentLogs },
   ] = await Promise.all([
     getWeights(pet.id),
-    supabase.rpc("scheduled_doses", { p_pet_id: pet.id, p_from: today, p_to: today }),
-    supabase.from("meal_logs").select("*").eq("pet_id", pet.id).eq("day", today),
     supabase
       .from("medications")
       .select("id, name, reorder_on")
@@ -81,7 +76,7 @@ export default async function DashboardPage() {
       .gte("valid_until", today)
       .lte("valid_until", addDays(today, 30))
       .order("valid_until"),
-    supabase.from("calendar_events").select(EVENT_SELECT).eq("pet_id", pet.id).eq("event_date", today).order("event_time"),
+    getDayItems(pet, today),
     supabase
       .from("calendar_events")
       .select(EVENT_SELECT)
@@ -117,50 +112,7 @@ export default async function DashboardPage() {
   ]);
   const loggedToday = (recentLogs ?? []).some((l) => l.day === today);
 
-  // Napi teendők: az esedékes gyógyszerek és a két étkezés, időrendben.
-  const doseItems: TodayItem[] = (doses ?? []).map((d) => ({
-    kind: "dose",
-    key: `${d.medication_id}-${d.scheduled_for}`,
-    time: formatTime(d.scheduled_for),
-    title: d.name,
-    detail: d.dosage,
-    medicationId: d.medication_id,
-    scheduledFor: d.scheduled_for,
-    logId: d.log_id,
-    status: d.status as "given" | "missed" | "refused" | null,
-    doneAt: d.given_at ? formatTime(d.given_at) : null,
-  }));
-  const mealItems: TodayItem[] = (["reggeli", "vacsora"] as const).map((meal) => {
-    const log = meals?.find((m) => m.meal === meal);
-    return {
-      kind: "meal",
-      key: meal,
-      time: shortTime(meal === "reggeli" ? pet.breakfast_time : pet.dinner_time),
-      title: meal === "reggeli" ? "Reggeli" : "Vacsora",
-      detail: null,
-      meal,
-      logId: log?.id ?? null,
-      status: (log?.status as "eaten" | "partial" | "refused" | undefined) ?? null,
-      doneAt: log ? formatTime(log.logged_at) : null,
-    };
-  });
-  // A mai feladatok (pl. fizioterápia, saját teendők) is kipipálhatók a listában.
-  const allToday = (todayEvents ?? []) as (EventRowData & { event_time: string | null })[];
-  const taskItems: TodayItem[] = allToday
-    .filter((e) => e.category === "feladat")
-    .map((e) => ({
-      kind: "task",
-      key: `t-${e.id}`,
-      time: e.event_time ? shortTime(e.event_time) : "–",
-      title: e.title,
-      detail: e.task_types?.name && e.task_types.name !== e.title ? e.task_types.name : null,
-      eventId: e.id,
-      logId: null,
-      status: e.status === "planned" ? null : (e.status as "done" | "missed"),
-      doneAt: null,
-    }));
-  const vetToday = allToday.filter((e) => e.category === "orvosi");
-  const items = [...doseItems, ...mealItems, ...taskItems].sort((a, b) => a.time.localeCompare(b.time));
+  const { items, vetEvents: vetToday } = dayItems;
   const doneCount = items.filter((i) => i.status !== null).length;
 
   const reminders: Reminder[] = [
