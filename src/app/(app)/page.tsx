@@ -108,7 +108,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="text-sm font-medium capitalize text-text-muted">{dateLabel}</p>
+        <p className="text-sm font-medium text-text-muted first-letter:uppercase">{dateLabel}</p>
         <h1 className="text-2xl font-bold tracking-tight">Mai áttekintés</h1>
       </div>
 
