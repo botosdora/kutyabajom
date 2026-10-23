@@ -12,11 +12,15 @@ export type EventRowData = {
   event_time: string | null;
   status: string;
   task_types?: { name: string } | null;
+  // Nem naptáresemény (pl. közvetlenül felvett beavatkozás vagy oltás): saját cím és típusnév.
+  href?: string;
+  typeLabel?: string;
 };
 
 export function EventRow({ event, showDate = true }: { event: EventRowData; showDate?: boolean }) {
   const Icon = event.category === "orvosi" ? Stethoscope : ClipboardList;
-  const typeLabel = event.category === "orvosi" ? vetTypeLabel(event.vet_type) : (event.task_types?.name ?? "Feladat");
+  const typeLabel =
+    event.typeLabel ?? (event.category === "orvosi" ? vetTypeLabel(event.vet_type) : (event.task_types?.name ?? "Feladat"));
   const when = [showDate && formatShortDate(event.event_date), event.event_time && shortTime(event.event_time)]
     .filter(Boolean)
     .join(" · ");
@@ -24,7 +28,7 @@ export function EventRow({ event, showDate = true }: { event: EventRowData; show
   return (
     <li>
       <Link
-        href={`/naptar/${event.id}`}
+        href={event.href ?? `/naptar/${event.id}`}
         className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 hover:bg-surface-muted"
       >
         <span

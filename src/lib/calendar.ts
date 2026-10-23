@@ -74,3 +74,4 @@ export function describeRepeat(rule: string | null, interval: number | null) {
   const unit = { daily: "nap", weekly: "hét", monthly: "hónap", yearly: "év" }[rule] ?? "";
   return n === 1 ? REPEAT_RULES.find((r) => r.value === rule)?.label : `${n} ${unit}enként`.replace("hétenként", "hetente");
 }
+

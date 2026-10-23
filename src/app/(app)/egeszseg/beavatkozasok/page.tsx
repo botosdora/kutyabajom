@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ChevronRight, Stethoscope } from "lucide-react";
+import { CalendarClock, ChevronRight, Stethoscope } from "lucide-react";
+import { EventRow } from "@/components/event-row";
 import { AddPanel } from "@/components/forms";
 import { MedicalEventFields } from "@/components/medical-event-fields";
-import { EmptyState, Field, LoadMore, PageHeader, pageLimit } from "@/components/ui";
+import { EmptyState, Field, LoadMore, PageHeader, pageLimit, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, todayIso } from "@/lib/format";
 import { EVENT_KINDS, eventKindLabel, getVets, vetOptions } from "@/lib/health";
@@ -15,13 +16,20 @@ export default async function MedicalEventsPage({ searchParams }: { searchParams
   const pet = await requireCurrentPet();
   const limit = pageLimit((await searchParams).db);
   const supabase = await createClient();
-  const [{ data: events }, vets] = await Promise.all([
+  const [{ data: events }, vets, { data: planned }] = await Promise.all([
     supabase
       .from("medical_events")
       .select("id, event_date, kind, title, vets(name)")
       .eq("pet_id", pet.id)
       .order("event_date", { ascending: false }),
     getVets(pet.id),
+    supabase
+      .from("calendar_events")
+      .select("id, category, vet_type, title, event_date, event_time, status")
+      .eq("pet_id", pet.id)
+      .eq("category", "orvosi")
+      .eq("status", "planned")
+      .order("event_date"),
   ]);
 
   // Évenként csoportosítva, a legfrissebb elöl.
@@ -42,6 +50,20 @@ export default async function MedicalEventsPage({ searchParams }: { searchParams
           <Field label="Költség (Ft)" name="cost_huf" type="number" min={0} inputMode="numeric" hint="A Költségek között Állatorvos kategóriában jelenik meg." />
         </AddPanel>
       </div>
+
+      {!!planned?.length && (
+        <section className="mb-6">
+          <SectionTitle icon={CalendarClock}>Tervezett és visszajelzésre váró</SectionTitle>
+          <p className="mb-2 text-sm text-text-muted">
+            A naptárban felvett orvosi események. Ha megtörtént, koppints rá, és rögzítsd – akkor bekerül a beavatkozások közé.
+          </p>
+          <ul className="flex flex-col gap-2">
+            {planned.map((e) => (
+              <EventRow key={e.id} event={e} />
+            ))}
+          </ul>
+        </section>
+      )}
 
       {byYear.size === 0 ? (
         <EmptyState>Még nincs rögzített esemény. Korábbi eseményeket is felvehetsz.</EmptyState>

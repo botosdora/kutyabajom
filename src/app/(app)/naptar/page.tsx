@@ -5,6 +5,7 @@ import { EventRow, type EventRowData } from "@/components/event-row";
 import { ButtonLink, EmptyState, LoadMore, PageHeader, pageLimit, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { CALENDAR_FILTER_COOKIE, CALENDAR_LAYERS, parseCalendarFilter } from "@/lib/calendar";
+import { getMedicalHistoryEvents } from "@/lib/calendar-history";
 import { addDays, formatDate, formatTime, todayIso } from "@/lib/format";
 import { requireCurrentPet } from "@/lib/pets";
 import { toggleCalendarFilter } from "./actions";
@@ -50,7 +51,7 @@ export default async function CalendarPage({
   const limit = pageLimit(db);
   const supabase = await createClient();
 
-  const [{ data: gridEvents }, { data: upcoming }, { data: pending }, { data: past, count: pastCount }, { data: doses }] =
+  const [{ data: gridEvents }, { data: upcoming }, { data: pending }, { data: past, count: pastCount }, { data: doses }, history] =
     await Promise.all([
       supabase.from("calendar_events").select(SELECT).eq("pet_id", pet.id).gte("event_date", grid.start).lte("event_date", grid.end).order("event_time"),
       supabase.from("calendar_events").select(SELECT).eq("pet_id", pet.id).eq("status", "planned").gt("event_date", today).lte("event_date", addDays(today, 90)).order("event_date").order("event_time").limit(10),
@@ -59,9 +60,10 @@ export default async function CalendarPage({
       layers.has("gyogyszer")
         ? supabase.rpc("scheduled_doses", { p_pet_id: pet.id, p_from: grid.start, p_to: grid.end })
         : Promise.resolve({ data: [] as Dose[] }),
+      layers.has("orvosi") ? getMedicalHistoryEvents(pet.id, grid.start, grid.end) : Promise.resolve([] as EventRowData[]),
     ]);
 
-  const events = ((gridEvents ?? []) as EventRowData[]).filter((e) => layers.has(e.category));
+  const events = [...((gridEvents ?? []) as EventRowData[]).filter((e) => layers.has(e.category)), ...history];
   const eventsByDay = new Map<string, EventRowData[]>();
   for (const e of events) eventsByDay.set(e.event_date, [...(eventsByDay.get(e.event_date) ?? []), e]);
   const dosesByDay = new Map<string, Dose[]>();
