@@ -46,25 +46,33 @@ export function PushSettings() {
     })().catch(() => setStatus("unsupported"));
   }, []);
 
+  const [error, setError] = useState<string | null>(null);
+
   const enable = async () => {
     setBusy(true);
+    setError(null);
+    let step = "engedélykérés";
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         setStatus(permission === "denied" ? "denied" : "off");
+        if (permission !== "denied") setError("Nem adtál engedélyt az értesítésekre.");
         return;
       }
+      step = "service worker";
       const reg = await navigator.serviceWorker.ready;
+      step = "feliratkozás";
       const sub =
         (await reg.pushManager.getSubscription()) ??
         (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64ToBytes(VAPID_PUBLIC_KEY) }));
+      step = "mentés";
       const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
       const result = await savePushSubscription({ ...json, userAgent: navigator.userAgent });
-      if (!result.ok) throw new Error("save");
+      if (!result.ok) throw new Error("az adatbázis nem fogadta el");
       setStatus("on");
       toast("Értesítések bekapcsolva ezen az eszközön.");
-    } catch {
-      toast("Nem sikerült bekapcsolni az értesítéseket.");
+    } catch (e) {
+      setError(`Nem sikerült bekapcsolni (lépés: ${step}). ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setBusy(false);
     }
@@ -121,8 +129,11 @@ export function PushSettings() {
       </div>
     </div>
   ) : (
-    <button type="button" disabled={busy} onClick={enable} className={buttonClass("primary", "w-full")}>
-      <Bell size={18} aria-hidden="true" /> Értesítések bekapcsolása ezen az eszközön
-    </button>
+    <div className="flex flex-col gap-3">
+      <button type="button" disabled={busy} onClick={enable} className={buttonClass("primary", "w-full")}>
+        <Bell size={18} aria-hidden="true" /> {busy ? "Bekapcsolás…" : "Értesítések bekapcsolása ezen az eszközön"}
+      </button>
+      {error && <Alert kind="error">{error}</Alert>}
+    </div>
   );
 }
