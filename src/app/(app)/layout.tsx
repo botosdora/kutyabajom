@@ -1,5 +1,6 @@
 import { BottomNav, SideNav } from "@/components/nav";
 import { PetSwitcher } from "@/components/pet-switcher";
+import { ServiceWorkerRegister } from "@/components/push-settings";
 import { getCurrentPet, getPets } from "@/lib/pets";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-5 md:px-8 md:pb-12 md:pt-8 [&>*:not(.wide)]:mx-auto [&>*:not(.wide)]:max-w-2xl">{children}</main>
       </div>
       <BottomNav />
+      <ServiceWorkerRegister />
     </div>
   );
 }

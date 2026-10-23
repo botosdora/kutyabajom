@@ -569,6 +569,45 @@ export type Database = {
           },
         ]
       }
+      notification_log: {
+        Row: {
+          dedupe_key: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          dedupe_key: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          dedupe_key?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_requests: {
+        Row: {
+          created_at: string
+          id: string
+          processed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pet_members: {
         Row: {
           created_at: string
@@ -643,27 +682,66 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          daily_reminder_time: string
           email: string | null
           full_name: string | null
           id: string
           notifications_enabled: boolean
+          notify_doses: boolean
+          notify_reminders: boolean
           phone: string | null
         }
         Insert: {
           created_at?: string
+          daily_reminder_time?: string
           email?: string | null
           full_name?: string | null
           id: string
           notifications_enabled?: boolean
+          notify_doses?: boolean
+          notify_reminders?: boolean
           phone?: string | null
         }
         Update: {
           created_at?: string
+          daily_reminder_time?: string
           email?: string | null
           full_name?: string | null
           id?: string
           notifications_enabled?: boolean
+          notify_doses?: boolean
+          notify_reminders?: boolean
           phone?: string | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -861,6 +939,19 @@ export type Database = {
         Args: { p_email: string; p_pet_id: string }
         Returns: string
       }
+      claim_notifications: {
+        Args: { p_now: string }
+        Returns: {
+          auth: string
+          body: string
+          dedupe_key: string
+          endpoint: string
+          p256dh: string
+          subscription_id: string
+          title: string
+          url: string
+        }[]
+      }
       create_pet: {
         Args: {
           p_birth_date?: string
@@ -870,6 +961,16 @@ export type Database = {
           p_sex?: string
         }
         Returns: string
+      }
+      due_notifications: {
+        Args: { p_now: string }
+        Returns: {
+          body: string
+          dedupe_key: string
+          title: string
+          url: string
+          user_id: string
+        }[]
       }
       is_pet_member: { Args: { p_pet_id: string }; Returns: boolean }
       is_pet_owner: { Args: { p_pet_id: string }; Returns: boolean }
@@ -881,6 +982,15 @@ export type Database = {
           role: string
           user_id: string
         }[]
+      }
+      save_push_subscription: {
+        Args: {
+          p_auth: string
+          p_endpoint: string
+          p_p256dh: string
+          p_user_agent: string
+        }
+        Returns: undefined
       }
       scheduled_doses: {
         Args: { p_from: string; p_pet_id: string; p_to: string }

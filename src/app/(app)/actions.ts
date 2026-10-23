@@ -101,7 +101,6 @@ export async function updateProfile(_: ActionResult, formData: FormData): Promis
     .update({
       full_name: optional(formData, "full_name"),
       phone: optional(formData, "phone"),
-      notifications_enabled: formData.get("notifications_enabled") === "on",
     })
     .eq("id", user.id);
   if (error) return { error: "Nem sikerült menteni." };
@@ -131,4 +130,47 @@ export async function setAppearance(formData: FormData) {
   if (typeof theme === "string") store.set(THEME_COOKIE, parseTheme(theme), options);
   if (typeof accent === "string") store.set(ACCENT_COOKIE, parseAccent(accent), options);
   revalidatePath("/", "layout");
+}
+
+export async function savePushSubscription(subscription: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  userAgent: string;
+}) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("save_push_subscription", {
+    p_endpoint: subscription.endpoint,
+    p_p256dh: subscription.keys.p256dh,
+    p_auth: subscription.keys.auth,
+    p_user_agent: subscription.userAgent,
+  });
+  return { ok: !error };
+}
+
+export async function removePushSubscription(endpoint: string) {
+  const supabase = await createClient();
+  await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+}
+
+export async function requestTestNotification() {
+  const supabase = await createClient();
+  const { error } = await supabase.from("notification_requests").insert({});
+  return { ok: !error };
+}
+
+export async function updateNotificationSettings(_: ActionResult, formData: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      notifications_enabled: formData.get("notifications_enabled") === "on",
+      notify_doses: formData.get("notify_doses") === "on",
+      notify_reminders: formData.get("notify_reminders") === "on",
+      daily_reminder_time: String(formData.get("daily_reminder_time") || "08:00"),
+    })
+    .eq("id", user.id);
+  if (error) return { error: "Nem sikerült menteni." };
+  revalidatePath("/tobb");
+  return { message: "Elmentve." };
 }

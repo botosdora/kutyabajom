@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getPets, requireUser } from "@/lib/pets";
 import { ACCENT_COOKIE, ACCENTS, parseAccent, parseTheme, THEME_COOKIE, THEMES } from "@/lib/appearance";
 import { cookies } from "next/headers";
-import { setAppearance, updateProfile } from "../actions";
+import { setAppearance, updateNotificationSettings, updateProfile } from "../actions";
+import { PushSettings } from "@/components/push-settings";
 import { logout } from "../../(auth)/actions";
 
 export const metadata = { title: "Több" };
@@ -110,21 +111,47 @@ export default async function MorePage() {
       </section>
 
       <section className="mb-6">
+        <SectionTitle>Értesítések</SectionTitle>
+        <Card className="flex flex-col gap-4">
+          <PushSettings />
+          <ActionForm action={updateNotificationSettings} className="flex flex-col gap-3 border-t border-border pt-4">
+            {[
+              { name: "notifications_enabled", label: "Értesítéseket kérek", hint: "Főkapcsoló minden eszközödre.", checked: profile?.notifications_enabled },
+              { name: "notify_doses", label: "Gyógyszerek az időpontjukban", hint: "Ha addig nem pipáltad ki.", checked: profile?.notify_doses },
+              {
+                name: "notify_reminders",
+                label: "Emlékeztetők",
+                hint: "Vizsgálat 5, feladat 1, újravásárlás 7 nappal előre, lejáró oltás, és az esemény napján „Megtörtént?”.",
+                checked: profile?.notify_reminders,
+              },
+            ].map((o) => (
+              <label key={o.name} className="flex items-start gap-3">
+                <input type="checkbox" name={o.name} defaultChecked={o.checked ?? true} className="mt-0.5 size-5 shrink-0 accent-primary" />
+                <span>
+                  <span className="block text-[15px] font-medium">{o.label}</span>
+                  <span className="block text-xs text-text-muted">{o.hint}</span>
+                </span>
+              </label>
+            ))}
+            <Field
+              label="Emlékeztetők időpontja"
+              name="daily_reminder_time"
+              type="time"
+              defaultValue={profile?.daily_reminder_time?.slice(0, 5) ?? "08:00"}
+              hint="Az előre szóló emlékeztetők naponta ekkor érkeznek."
+            />
+            <SubmitButton>Mentés</SubmitButton>
+          </ActionForm>
+        </Card>
+      </section>
+
+      <section className="mb-6">
         <SectionTitle>Gazdi profil</SectionTitle>
         <Card>
           <ActionForm action={updateProfile}>
             <Field label="Név" name="full_name" defaultValue={profile?.full_name ?? ""} autoComplete="name" />
             <Field label="E-mail cím" name="email" defaultValue={user.email} disabled />
             <Field label="Telefonszám" name="phone" type="tel" defaultValue={profile?.phone ?? ""} autoComplete="tel" />
-            <label className="flex items-center gap-3 text-[15px]">
-              <input
-                type="checkbox"
-                name="notifications_enabled"
-                defaultChecked={profile?.notifications_enabled ?? true}
-                className="size-5 accent-primary"
-              />
-              Értesítéseket kérek
-            </label>
             <SubmitButton>Mentés</SubmitButton>
           </ActionForm>
         </Card>

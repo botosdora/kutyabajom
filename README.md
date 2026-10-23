@@ -32,6 +32,15 @@ npm run db:types
 Minden kutyához tartozó adatot sorszintű biztonság (RLS) véd: csak a kutya
 gazdái (`pet_members`) férnek hozzá.
 
+### Értesítések
+
+- Az app telepíthető (PWA), a `public/sw.js` service worker jeleníti meg a push értesítéseket.
+- Percenként fut egy `pg_cron` feladat, amely meghívja a `send-reminders` Edge Functiont
+  (`supabase/functions/send-reminders`). Ez a `claim_notifications` SQL függvénnyel kéri le az
+  esedékes értesítéseket, és elküldi őket.
+- Titkos értékek (nem a repóban): Supabase Edge Function secretek (`VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY`, `CRON_SECRET`) és Vault (`project_url`, `cron_secret`).
+
 ### E-mail sablonok
 
 A regisztrációs és jelszó-visszaállító levelek magyar sablonjai a
@@ -43,5 +52,5 @@ beállítani (Authentication → Emails).
 1. ✅ Regisztráció, kutyaprofilok, közös gazdik, adatlap, súly, allergiák és betegségek, oltások, orvosi beavatkozások, orvosok
 2. ✅ Gyógyszerek és ütemezés, dashboard napi teendőkkel
 3. ✅ Naptár, vizsgálatok, események, dokumentumfeltöltés, költségek
-4. PWA push értesítések
+4. ✅ PWA push értesítések
 5. Napló, trendek, étkezés (tápok), PDF exportok
