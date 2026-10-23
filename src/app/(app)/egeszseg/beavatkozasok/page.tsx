@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronRight, Stethoscope } from "lucide-react";
 import { AddPanel } from "@/components/forms";
 import { MedicalEventFields } from "@/components/medical-event-fields";
-import { EmptyState, LoadMore, PageHeader, pageLimit } from "@/components/ui";
+import { EmptyState, Field, LoadMore, PageHeader, pageLimit } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, todayIso } from "@/lib/format";
 import { EVENT_KINDS, eventKindLabel, getVets, vetOptions } from "@/lib/health";
@@ -39,6 +39,7 @@ export default async function MedicalEventsPage({ searchParams }: { searchParams
         <AddPanel label="Új esemény" action={addMedicalEvent}>
           <input type="hidden" name="pet_id" value={pet.id} />
           <MedicalEventFields kinds={EVENT_KINDS} vets={vetOptions(vets)} today={todayIso()} />
+          <Field label="Költség (Ft)" name="cost_huf" type="number" min={0} inputMode="numeric" hint="A Költségek között Állatorvos kategóriában jelenik meg." />
         </AddPanel>
       </div>
 

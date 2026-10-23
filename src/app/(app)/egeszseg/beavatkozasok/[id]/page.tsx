@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
 import { DocumentList } from "@/components/document-list";
 import { DocumentUpload } from "@/components/document-upload";
-import { ActionForm, DeleteButton, SubmitButton } from "@/components/forms";
+import { ActionForm, AddPanel, DeleteButton, SubmitButton } from "@/components/forms";
 import { MedicalEventFields } from "@/components/medical-event-fields";
-import { Alert, Card, PageHeader, SectionTitle } from "@/components/ui";
+import { Alert, Card, Field, PageHeader, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { DOC_TYPES } from "@/lib/documents";
 import { expenseCategoryLabel } from "@/lib/expenses";
 import { formatDate, formatHuf, todayIso } from "@/lib/format";
 import { supabaseKey, supabaseUrl } from "@/lib/supabase/env";
 import { EVENT_KINDS, eventKindLabel, getVets, vetOptions } from "@/lib/health";
-import { deleteRecord, updateMedicalEvent } from "../../actions";
+import { addMedicalEventCost, deleteMedicalEventCost, deleteRecord, updateMedicalEvent } from "../../actions";
 
 export default async function MedicalEventPage({
   params,
@@ -31,7 +31,7 @@ export default async function MedicalEventPage({
   const [vets, { data: docs }, { data: costs }] = await Promise.all([
     getVets(event.pet_id),
     supabase.from("documents").select("*").eq("medical_event_id", id).order("document_date", { ascending: false }),
-    supabase.from("expenses").select("id, amount_huf, category, spent_on").eq("medical_event_id", id),
+    supabase.from("expenses").select("id, amount_huf, category, spent_on, title").eq("medical_event_id", id).order("spent_on"),
   ]);
 
   return (
@@ -92,21 +92,45 @@ export default async function MedicalEventPage({
         />
       </section>
 
-      {!!costs?.length && (
-        <section className="mb-6">
-          <SectionTitle>Költségek</SectionTitle>
-          <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
+      <section className="mb-6">
+        <SectionTitle
+          action={
+            !!costs?.length && (
+              <span className="text-sm text-text-muted">
+                Összesen: {formatHuf(costs.reduce((sum, c) => sum + c.amount_huf, 0))}
+              </span>
+            )
+          }
+        >
+          Költségek
+        </SectionTitle>
+        {!!costs?.length && (
+          <ul className="mb-3 divide-y divide-border rounded-2xl border border-border bg-surface">
             {costs.map((c) => (
-              <li key={c.id} className="flex justify-between px-4 py-2.5 text-sm">
-                <span>
-                  {formatDate(c.spent_on)} · {expenseCategoryLabel(c.category)}
+              <li key={c.id} className="flex items-center gap-3 py-2 pl-4 pr-2 text-sm">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{c.title}</span>
+                  <span className="block text-xs text-text-muted">
+                    {formatDate(c.spent_on)} · {expenseCategoryLabel(c.category)}
+                  </span>
                 </span>
                 <span className="font-semibold">{formatHuf(c.amount_huf)}</span>
+                <DeleteButton action={deleteMedicalEventCost.bind(null, c.id, event.id)} />
               </li>
             ))}
           </ul>
-        </section>
-      )}
+        )}
+        <AddPanel label="Költség hozzáadása" action={addMedicalEventCost}>
+          <input type="hidden" name="medical_event_id" value={event.id} />
+          <input type="hidden" name="pet_id" value={event.pet_id} />
+          <input type="hidden" name="event_title" value={event.title} />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Összeg (Ft)" name="cost_huf" type="number" min={0} inputMode="numeric" required />
+            <Field label="Dátum" name="spent_on" type="date" defaultValue={event.event_date} required />
+          </div>
+          <Field label="Megnevezés" name="title" placeholder={`Ha üres: ${event.title}`} />
+        </AddPanel>
+      </section>
 
       <DeleteButton
         action={deleteRecord.bind(null, "medical_events", event.id, `/egeszseg/beavatkozasok/${event.id}`)}

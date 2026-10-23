@@ -96,11 +96,60 @@ function medicalEventFields(fd: FormData) {
 }
 
 export async function addMedicalEvent(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  const cost = optionalNumber(fd, "cost_huf");
+  if (cost !== null && cost < 0) return { error: "A költség nem lehet negatív." };
   const supabase = await createClient();
-  const { error } = await supabase
+  const fields = medicalEventFields(fd);
+  const { data, error } = await supabase
     .from("medical_events")
-    .insert({ pet_id: required(fd, "pet_id"), ...medicalEventFields(fd) });
-  return error ? SAVE_ERROR : done("/egeszseg/beavatkozasok");
+    .insert({ pet_id: required(fd, "pet_id"), ...fields })
+    .select("id")
+    .single();
+  if (error) return SAVE_ERROR;
+  if (cost) await insertEventCost(supabase, data.id, required(fd, "pet_id"), fields.event_date, fields.title, cost);
+  return done("/egeszseg/beavatkozasok");
+}
+
+// Költség egy orvosi eseményhez: a Költségek között Állatorvos kategóriában jelenik meg.
+async function insertEventCost(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  medicalEventId: string,
+  petId: string,
+  spentOn: string,
+  title: string,
+  amount: number,
+) {
+  return supabase.from("expenses").insert({
+    pet_id: petId,
+    spent_on: spentOn,
+    category: "allatorvos",
+    amount_huf: Math.round(amount),
+    title,
+    medical_event_id: medicalEventId,
+  });
+}
+
+export async function addMedicalEventCost(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  const cost = optionalNumber(fd, "cost_huf");
+  if (!cost || cost <= 0) return { error: "Adj meg egy érvényes összeget." };
+  const supabase = await createClient();
+  const id = required(fd, "medical_event_id");
+  const { error } = await insertEventCost(
+    supabase,
+    id,
+    required(fd, "pet_id"),
+    required(fd, "spent_on"),
+    optional(fd, "title") ?? required(fd, "event_title"),
+    cost,
+  );
+  return error ? SAVE_ERROR : done(`/egeszseg/beavatkozasok/${id}`);
+}
+
+export async function deleteMedicalEventCost(expenseId: string, medicalEventId: string) {
+  const supabase = await createClient();
+  await supabase.from("expenses").delete().eq("id", expenseId);
+  revalidatePath("/", "layout");
+  revalidatePath(`/egeszseg/beavatkozasok/${medicalEventId}`);
 }
 
 export async function updateMedicalEvent(_: ActionResult, fd: FormData): Promise<ActionResult> {
