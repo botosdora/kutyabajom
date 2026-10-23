@@ -43,3 +43,11 @@ export async function requireCurrentPet() {
 export function petPhotoUrl(path: string | null) {
   return path ? `${supabaseUrl}/storage/v1/object/public/pet-photos/${path}` : null;
 }
+
+export const getIsAdmin = cache(async () => {
+  const user = await getUser();
+  if (!user) return false;
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+  return data?.is_admin ?? false;
+});

@@ -81,7 +81,7 @@ export async function addMember(_: ActionResult, formData: FormData): Promise<Ac
   if (data === "nincs_ilyen_felhasznalo") {
     return {
       error:
-        "Ezzel az e-mail címmel még nincs regisztráció. Az Egyéb menüben készíts neki meghívót, és ha regisztrált, add hozzá itt.",
+        "Ezzel az e-mail címmel még nincs regisztráció. Kérj neki meghívót az app adminjától, és ha regisztrált, add hozzá itt.",
     };
   }
   revalidatePath("/kutya");
@@ -201,13 +201,13 @@ export async function setPetPhoto(petId: string, path: string | null) {
 export async function createInvite(_: ActionResult, formData: FormData): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("create_invite", { p_note: optional(formData, "note") ?? undefined });
-  if (error) return { error: "Nem sikerült meghívót készíteni." };
-  revalidatePath("/egyeb");
+  if (error) return { error: "Nem sikerült meghívót készíteni. Meghívót csak az admin készíthet." };
+  revalidatePath("/admin");
   return { message: "Meghívó elkészült." };
 }
 
 export async function deleteInvite(code: string) {
   const supabase = await createClient();
   await supabase.from("invites").delete().eq("code", code).is("used_by", null);
-  revalidatePath("/egyeb");
+  revalidatePath("/admin");
 }

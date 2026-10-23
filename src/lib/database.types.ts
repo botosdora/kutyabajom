@@ -954,6 +954,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_admin: boolean
           notifications_enabled: boolean
           notify_doses: boolean
           notify_reminders: boolean
@@ -965,6 +966,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          is_admin?: boolean
           notifications_enabled?: boolean
           notify_doses?: boolean
           notify_reminders?: boolean
@@ -976,6 +978,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_admin?: boolean
           notifications_enabled?: boolean
           notify_doses?: boolean
           notify_reminders?: boolean
@@ -1210,6 +1213,30 @@ export type Database = {
         Args: { p_email: string; p_pet_id: string }
         Returns: string
       }
+      admin_set_suspended: {
+        Args: { p_suspended: boolean; p_user_id: string }
+        Returns: undefined
+      }
+      admin_sole_owned_pets: {
+        Args: { p_user_id: string }
+        Returns: {
+          pet_id: string
+        }[]
+      }
+      admin_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          is_admin: boolean
+          last_sign_in_at: string
+          pets: number
+          storage_bytes: number
+          suspended: boolean
+        }[]
+      }
       claim_notifications: {
         Args: { p_now: string }
         Returns: {
@@ -1245,6 +1272,7 @@ export type Database = {
         }[]
       }
       invite_is_valid: { Args: { p_code: string }; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
       is_pet_member: { Args: { p_pet_id: string }; Returns: boolean }
       is_pet_owner: { Args: { p_pet_id: string }; Returns: boolean }
       pet_member_list: {

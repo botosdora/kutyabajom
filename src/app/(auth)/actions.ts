@@ -6,6 +6,7 @@ import type { ActionResult } from "@/components/forms";
 
 function translateAuthError(message: string) {
   if (message.includes("Invalid login credentials")) return "Hibás e-mail cím vagy jelszó.";
+  if (message.toLowerCase().includes("banned")) return "A fiókod fel van függesztve. Keresd az app adminját.";
   if (message.includes("meghívókód") || message.includes("Database error saving new user"))
     return "Érvénytelen vagy már felhasznált meghívókód.";
   if (message.includes("Email not confirmed"))

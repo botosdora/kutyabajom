@@ -54,8 +54,15 @@ beállítani (Authentication → Emails).
 
 ### Regisztráció
 
-Regisztrálni csak meghívókóddal lehet (Egyéb → Meghívók). A kódot az adatbázis
-ellenőrzi a felhasználó létrehozásakor (`handle_new_user` trigger).
+Regisztrálni csak meghívókóddal lehet. A kódot az adatbázis ellenőrzi a
+felhasználó létrehozásakor (`handle_new_user` trigger).
+
+### Admin
+
+Az admin (`profiles.is_admin`, csak SQL-ből állítható) az Egyéb → Adminisztráció
+oldalon készít meghívót, látja a tárhelyet, felfüggeszthet és törölhet
+felhasználót. Mások kutyáinak adataiba nem lát bele. A végleges törlést a
+`admin-delete-user` Edge Function végzi.
 
 ### Adatmentés
 
