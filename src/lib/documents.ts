@@ -17,6 +17,6 @@ export function parseTags(value: string | null) {
 
 export function formatSize(bytes: number | null) {
   if (!bytes) return "";
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / 1024 / 1024).toLocaleString("hu-HU", { maximumFractionDigits: 1 })} MB`;
 }

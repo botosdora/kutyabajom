@@ -281,16 +281,32 @@ body {
 }
 
 /* iOS Safari a dátum- és időmezőknek saját minimális szélességet ad, ezért
-   kilógnak a tárolójukból; így mindig kitöltik a rendelkezésre álló helyet. */
+   kilógnak a tárolójukból; így mindig kitöltik a rendelkezésre álló helyet.
+   Az értéket függőlegesen középre igazítjuk (az appearance kikapcsolása után
+   iOS-en a mező tetejére csúszna). */
 input[type="date"],
 input[type="time"] {
   -webkit-appearance: none;
   appearance: none;
   min-width: 0;
   max-width: 100%;
-  display: block;
+  display: flex;
+  align-items: center;
 }
 input[type="date"]::-webkit-date-and-time-value,
 input[type="time"]::-webkit-date-and-time-value {
   text-align: left;
+  margin: 0;
+  min-height: 1.5em;
+  line-height: 1.5em;
+}
+input[type="date"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit {
+  padding: 0;
+}
+
+/* A fieldset alapból nem zsugorodik a tartalmánál keskenyebbre (min-content),
+   ami keskeny kijelzőn kilógó tartalmat okoz. */
+fieldset {
+  min-width: 0;
 }

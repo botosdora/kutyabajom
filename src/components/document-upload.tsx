@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Upload } from "lucide-react";
+import { FileText, RefreshCw, Upload, X } from "lucide-react";
 import { prepareUpload, saveDocument } from "@/app/(app)/egeszseg/dokumentumok/actions";
 import { useToast } from "@/components/toast";
 import { Alert, buttonClass, Field, Select } from "@/components/ui";
+import { formatSize } from "@/lib/documents";
 import { compressImage } from "@/lib/image";
 
 type Option = { value: string; label: string };
@@ -37,6 +38,7 @@ export function DocumentUpload({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [stage, setStage] = useState<string | null>(null);
+  const [picked, setPicked] = useState<File | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const toast = useToast();
 
@@ -51,8 +53,7 @@ export function DocumentUpload({
   const submit = (fd: FormData) =>
     startTransition(async () => {
       setError(null);
-      const picked = fd.get("file");
-      if (!(picked instanceof File) || picked.size === 0) return setError("Válassz ki egy fájlt.");
+      if (!picked) return setError("Válassz ki egy fájlt.");
       setStage("Kép tömörítése…");
       const file = await compressImage(picked);
       if (file.size > 20 * 1024 * 1024) {
@@ -83,6 +84,7 @@ export function DocumentUpload({
       if (result?.error) return setError(result.error);
       toast(result?.message ?? "Elmentve.");
       formRef.current?.reset();
+      setPicked(null);
       setOpen(false);
     });
 
@@ -91,17 +93,14 @@ export function DocumentUpload({
       <form ref={formRef} action={submit} className="flex flex-col gap-4">
         <input type="hidden" name="pet_id" value={petId} />
         {medicalEventId && <input type="hidden" name="medical_event_id" value={medicalEventId} />}
-        <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">Fájl (kép vagy PDF)</span>
-          <span className="text-xs text-text-muted">A fotókat feltöltés előtt automatikusan kisebbre tömörítjük.</span>
-          <input
-            type="file"
-            name="file"
-            accept="image/*,application/pdf"
-            required
-            className="text-sm file:mr-3 file:h-10 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:font-semibold file:text-on-primary"
-          />
-        </label>
+        <FileDrop
+          file={picked}
+          disabled={pending}
+          onPick={(file) => {
+            setError(null);
+            setPicked(file);
+          }}
+        />
         <Field label="Megnevezés" name="title" placeholder="Ha üres, a fájl neve lesz" />
         <div className="grid grid-cols-2 gap-3">
           <Select label="Típus" name="doc_type" options={docTypes} defaultValue="labor" />
@@ -122,11 +121,136 @@ export function DocumentUpload({
           <button type="submit" disabled={pending} className={buttonClass("primary", "flex-1")}>
             {pending ? (stage ?? "Feltöltés…") : "Feltöltés"}
           </button>
-          <button type="button" onClick={() => setOpen(false)} className={buttonClass("ghost")}>
+          <button
+            type="button"
+            onClick={() => {
+              setPicked(null);
+              setOpen(false);
+            }}
+            className={buttonClass("ghost")}
+          >
             Mégse
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// Fájlválasztó: koppintásra tallóz, gépen ráhúzható a fájl; kiválasztás után
+// előnézet (kép) vagy ikon (PDF) a névvel és mérettel.
+function FileDrop({
+  file,
+  disabled,
+  onPick,
+}: {
+  file: File | null;
+  disabled: boolean;
+  onPick: (file: File | null) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file || !file.type.startsWith("image/")) return;
+    const url = URL.createObjectURL(file);
+    setTimeout(() => setPreview(url));
+    return () => {
+      URL.revokeObjectURL(url);
+      setPreview(null);
+    };
+  }, [file]);
+
+  const accept = (list: FileList | null) => {
+    const next = list?.[0];
+    if (next && (next.type.startsWith("image/") || next.type === "application/pdf")) onPick(next);
+  };
+
+  const input = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept="image/*,application/pdf"
+      className="sr-only"
+      aria-label="Fájl kiválasztása"
+      onChange={(e) => {
+        accept(e.target.files);
+        e.target.value = "";
+      }}
+    />
+  );
+
+  if (file) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-border bg-surface p-2.5">
+        {input}
+        {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={preview} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
+        ) : (
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
+            <FileText size={26} aria-hidden="true" />
+          </span>
+        )}
+        <div className="ml-1 min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">{file.name}</p>
+          <p className="text-xs text-text-muted">
+            {file.type === "application/pdf" ? "PDF" : "Kép"} · {formatSize(file.size)}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => inputRef.current?.click()}
+          aria-label="Másik fájl választása"
+          className="flex size-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-muted disabled:opacity-50"
+        >
+          <RefreshCw size={18} aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onPick(null)}
+          aria-label="Fájl eltávolítása"
+          className="flex size-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-muted disabled:opacity-50"
+        >
+          <X size={18} aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        accept(e.dataTransfer.files);
+      }}
+    >
+      {input}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => inputRef.current?.click()}
+        className={`flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors ${
+          dragging ? "border-primary bg-primary-soft" : "border-border bg-surface hover:border-primary/60"
+        }`}
+      >
+        <span className="flex size-11 items-center justify-center rounded-full bg-primary-soft text-primary">
+          <Upload size={22} aria-hidden="true" />
+        </span>
+        <span className="text-sm font-semibold">Fájl kiválasztása</span>
+        <span className="text-xs text-text-muted">
+          Kép vagy PDF, legfeljebb 20 MB. A fotókat automatikusan kisebbre tömörítjük.
+        </span>
+      </button>
     </div>
   );
 }

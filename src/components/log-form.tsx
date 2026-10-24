@@ -28,21 +28,22 @@ function ScaleInput({
   const Icon = SCALE_ICONS[name];
 
   return (
-    <div className="flex flex-col gap-1 rounded-2xl bg-surface-muted/60 p-3">
+    <div className="flex min-w-0 flex-col gap-1 rounded-2xl bg-surface-muted/60 p-3">
       <div className="flex items-center gap-2.5">
         <span className="flex size-9 items-center justify-center rounded-xl bg-surface text-link">
           <Icon size={18} aria-hidden="true" />
         </span>
-        <label htmlFor={`scale-${name}`} className="flex-1 text-[15px] font-semibold">
-          {label}
+        <label htmlFor={`scale-${name}`} className="min-w-0 flex-1 break-words text-[15px] font-semibold leading-tight">
+          {/* Lágy kötőjel: szűk kijelzőn a szóösszetétel határán törjön. */}
+          {label.replace("Folyadék", "Folyadék\u00ad")}
         </label>
         {rating && style ? (
-          <span className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-sm font-semibold ${style.badge}`}>
+          <span className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-sm font-semibold ${style.badge}`}>
             <span className="text-base font-bold tabular-nums">{value}</span>
             {rating.word}
           </span>
         ) : (
-          <span className="whitespace-nowrap rounded-full bg-surface px-2.5 py-1 text-sm font-medium text-text-muted">Nincs megadva</span>
+          <span className="shrink-0 whitespace-nowrap rounded-full bg-surface px-2.5 py-1 text-xs font-medium text-text-muted">Nincs megadva</span>
         )}
       </div>
       <input type="hidden" name={name} value={value ?? ""} />
@@ -64,7 +65,7 @@ function ScaleInput({
       />
       <div className="flex justify-between px-1 text-[11px] tabular-nums text-text-muted" aria-hidden="true">
         {Array.from({ length: 11 }, (_, i) => (
-          <span key={i} className={`w-3 text-center ${i === value ? "font-bold text-text" : ""}`}>
+          <span key={i} className={`w-3 shrink text-center ${i === value ? "font-bold text-text" : ""}`}>
             {i}
           </span>
         ))}
