@@ -1,4 +1,4 @@
-import { History, Pill, ShoppingBag } from "lucide-react";
+import { CalendarPlus, History, Pill, ShoppingBag } from "lucide-react";
 import { notFound } from "next/navigation";
 import { AddPanel, DeleteButton } from "@/components/forms";
 import { MedicationForm } from "@/components/medication-form";
@@ -6,7 +6,7 @@ import { buttonClass, Card, EmptyState, Field, PageHeader, SectionTitle } from "
 import { createClient } from "@/lib/supabase/server";
 import { budapestDay, formatDate, formatHuf, formatTime, todayIso } from "@/lib/format";
 import { categoryLabel, describeSchedule, DOSE_STATUS_LABELS, MED_CATEGORIES } from "@/lib/medications";
-import { addPurchase, deleteMedication, deletePurchase, setMedicationActive, updateMedication } from "../actions";
+import { addOnceDate, addPurchase, deleteMedication, deletePurchase, setMedicationActive, updateMedication } from "../actions";
 
 export default async function MedicationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -63,6 +63,23 @@ export default async function MedicationPage({ params }: { params: Promise<{ id:
           )}
         </dl>
       </Card>
+
+      {med.schedule_type === "once" && (
+        <section className="mb-6">
+          <SectionTitle icon={CalendarPlus}>Újabb alkalom</SectionTitle>
+          <AddPanel label="Új alkalom hozzáadása" action={addOnceDate}>
+            <input type="hidden" name="id" value={med.id} />
+            <Field
+              label="Dátum"
+              name="date"
+              type="date"
+              defaultValue={today}
+              required
+              hint="A korábbi alkalmak megmaradnak; az időpont a fenti beállítás szerint."
+            />
+          </AddPanel>
+        </section>
+      )}
 
       <details className="mb-6 rounded-2xl border border-border bg-surface">
         <summary className="cursor-pointer px-4 py-3 font-semibold">Szerkesztés</summary>

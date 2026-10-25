@@ -781,6 +781,7 @@ export type Database = {
           interval_days: number | null
           name: string
           notes: string | null
+          once_dates: string[]
           pet_id: string
           reorder_on: string | null
           schedule_type: string
@@ -798,6 +799,7 @@ export type Database = {
           interval_days?: number | null
           name: string
           notes?: string | null
+          once_dates?: string[]
           pet_id: string
           reorder_on?: string | null
           schedule_type?: string
@@ -815,6 +817,7 @@ export type Database = {
           interval_days?: number | null
           name?: string
           notes?: string | null
+          once_dates?: string[]
           pet_id?: string
           reorder_on?: string | null
           schedule_type?: string

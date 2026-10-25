@@ -55,6 +55,9 @@ export function MedicationForm({
   const [times, setTimes] = useState<string[]>(medication?.times.map((t) => t.slice(0, 5)) ?? ["08:00"]);
   const [startDate, setStartDate] = useState(medication?.start_date ?? today);
   const [endDate, setEndDate] = useState(medication?.end_date ?? "");
+  const [onceDates, setOnceDates] = useState<string[]>(
+    medication?.once_dates.length ? medication.once_dates : [medication?.start_date ?? today],
+  );
 
   return (
     <ActionForm action={action}>
@@ -91,27 +94,61 @@ export function MedicationForm({
         </div>
       </fieldset>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field
-          label={scheduleType === "once" ? "Dátum" : "Kezdés"}
-          name="start_date"
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          required
-        />
-        {scheduleType === "course" && (
+      {scheduleType === "once" ? (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1.5 text-sm font-medium">Dátum(ok)</legend>
+          {onceDates.map((date, i) => (
+            <div key={i} className="flex gap-2">
+              <input
+                type="date"
+                name="once_dates"
+                value={date}
+                onChange={(e) => setOnceDates(onceDates.map((d, j) => (j === i ? e.target.value : d)))}
+                required
+                aria-label={`${i + 1}. alkalom`}
+                className="h-11 flex-1 rounded-xl border border-border-strong bg-surface px-3 text-[15px] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
+              />
+              {onceDates.length > 1 && (
+                <button
+                  type="button"
+                  aria-label="Alkalom törlése"
+                  onClick={() => setOnceDates(onceDates.filter((_, j) => j !== i))}
+                  className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-text-muted hover:bg-border"
+                >
+                  <X size={18} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setOnceDates([...onceDates, today])}
+            className="flex h-10 items-center gap-1 self-start rounded-lg bg-primary-soft px-3 text-sm font-semibold text-link hover:opacity-80"
+          >
+            <Plus size={16} aria-hidden="true" /> Még egy alkalom
+          </button>
+        </fieldset>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
           <Field
-            label="Befejezés"
-            name="end_date"
+            label="Kezdés"
+            name="start_date"
             type="date"
-            value={endDate}
-            min={startDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
             required
           />
-        )}
-        {scheduleType !== "once" && (
+          {scheduleType === "course" && (
+            <Field
+              label="Befejezés"
+              name="end_date"
+              type="date"
+              value={endDate}
+              min={startDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              required
+            />
+          )}
           <Field
             label="Hány naponta?"
             name="interval_days"
@@ -120,8 +157,8 @@ export function MedicationForm({
             defaultValue={medication?.interval_days ?? 1}
             hint="1 = minden nap, 28 = négyhetente"
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {scheduleType === "course" && startDate && (
         <div className="-mt-2 flex flex-wrap gap-2" aria-label="Kúra hossza">

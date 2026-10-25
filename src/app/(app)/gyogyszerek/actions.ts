@@ -7,17 +7,23 @@ import { optional, optionalNumber, required } from "@/lib/form";
 import type { ActionResult } from "@/components/forms";
 
 const TIME_RE = /^\d{2}:\d{2}$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Az űrlapból kiolvassa és ellenőrzi a gyógyszer adatait és ütemezését.
 function medicationFields(fd: FormData) {
   const scheduleType = required(fd, "schedule_type");
   const times = [...new Set(fd.getAll("times").map(String).filter((t) => TIME_RE.test(t)))].sort();
-  const startDate = required(fd, "start_date");
+  // Egyszeri: több alkalom is lehet, a legkorábbi a kezdő dátum.
+  const onceDates =
+    scheduleType === "once"
+      ? [...new Set(fd.getAll("once_dates").map(String).filter((d) => DATE_RE.test(d)))].sort()
+      : [];
+  const startDate = scheduleType === "once" ? (onceDates[0] ?? "") : required(fd, "start_date");
   const endDate = scheduleType === "course" ? optional(fd, "end_date") : null;
   const interval = scheduleType === "once" ? null : (optionalNumber(fd, "interval_days") ?? 1);
 
   if (!required(fd, "name")) return { error: "Add meg a nevét." };
-  if (!startDate) return { error: "Add meg a kezdő dátumot." };
+  if (!startDate) return { error: scheduleType === "once" ? "Adj meg legalább egy dátumot." : "Add meg a kezdő dátumot." };
   if (times.length === 0) return { error: "Adj meg legalább egy időpontot." };
   if (scheduleType === "course" && !endDate) return { error: "Kúránál add meg a befejezés dátumát." };
   if (endDate && endDate < startDate) return { error: "A befejezés nem lehet a kezdés előtt." };
@@ -32,6 +38,7 @@ function medicationFields(fd: FormData) {
       dosage: optional(fd, "dosage"),
       schedule_type: scheduleType,
       start_date: startDate,
+      once_dates: onceDates,
       end_date: endDate,
       interval_days: interval,
       times,
@@ -63,6 +70,24 @@ export async function updateMedication(_: ActionResult, fd: FormData): Promise<A
   if (error) return { error: "Nem sikerült menteni." };
   revalidatePath("/", "layout");
   return { message: "Elmentve." };
+}
+
+// Egyszeri gyógyszer újabb alkalma (a korábbiak megmaradnak).
+export async function addOnceDate(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  const id = required(fd, "id");
+  const date = required(fd, "date");
+  if (!DATE_RE.test(date)) return { error: "Add meg a dátumot." };
+  const supabase = await createClient();
+  const { data: med } = await supabase.from("medications").select("once_dates").eq("id", id).maybeSingle();
+  if (!med) return { error: "Nem található." };
+  const dates = [...new Set([...med.once_dates, date])].sort();
+  const { error } = await supabase
+    .from("medications")
+    .update({ once_dates: dates, start_date: dates[0], active: true })
+    .eq("id", id);
+  if (error) return { error: "Nem sikerült menteni." };
+  revalidatePath("/", "layout");
+  return { message: "Új alkalom hozzáadva." };
 }
 
 export async function setMedicationActive(id: string, active: boolean) {
