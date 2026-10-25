@@ -10,6 +10,7 @@ import { addDays, formatDate, todayIso } from "@/lib/format";
 import { average, OBSERVATIONS, rateScale, SCALES, STOOL_OPTIONS, TONE_STYLE } from "@/lib/journal";
 import { requireCurrentPet } from "@/lib/pets";
 import { TREND_SERIES, trendData } from "@/lib/trends";
+import { Sparkline } from "@/components/sparkline";
 
 export const metadata = { title: "Napló kimutatás" };
 
@@ -96,13 +97,18 @@ export default async function JournalReportPage({ searchParams }: { searchParams
               const avg = average(logs.map((l) => l[s.key]));
               const rating = avg === null ? null : rateScale(s.kind, Math.round(avg));
               const Icon = SCALE_ICONS[s.key];
+              const color = TREND_SERIES.find((t) => t.key === s.key)?.color ?? "var(--series-5)";
+              const series = [...logs].reverse().map((l) => l[s.key]);
               return (
                 <Card key={s.key} className="p-3">
                   <p className="flex items-center gap-1.5 text-xs font-semibold uppercase text-text-muted">
                     <Icon size={14} aria-hidden="true" />
                     {s.short}
                   </p>
-                  <p className="text-2xl font-bold">{avg?.toLocaleString("hu-HU") ?? "–"}</p>
+                  <div className="flex items-end justify-between gap-2">
+                    <p className="text-2xl font-bold">{avg?.toLocaleString("hu-HU") ?? "–"}</p>
+                    <Sparkline values={series} color={color} min={0} max={10} width={64} height={28} />
+                  </div>
                   {rating && (
                     <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${TONE_STYLE[rating.tone].badge}`}>
                       átlag: {rating.word}

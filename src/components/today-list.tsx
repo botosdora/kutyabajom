@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, ClipboardList, Clock, MoreHorizontal, Pill, Utensils, X } from "lucide-react";
+import { Ban, Check, CircleDashed, ClipboardList, Clock, ExternalLink, MoreHorizontal, Pill, Undo2, Utensils, X } from "lucide-react";
 import { logDose, logMeal, undoDose, undoMeal } from "@/app/(app)/today-actions";
 import { setTaskStatus } from "@/app/(app)/naptar/actions";
+import { Sheet } from "@/components/sheet";
+import { haptic } from "@/lib/haptics";
 
 export type TodayItem =
   | {
@@ -56,28 +58,54 @@ function isDone(status: TodayItem["status"]) {
   return status === "given" || status === "eaten" || status === "partial" || status === "done";
 }
 
+const SWIPE_LIMIT = 72;
+
 function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petId: string; day: string; hideTime?: boolean }) {
   const [open, setOpen] = useState(false);
   const [showTime, setShowTime] = useState(false);
   const [time, setTime] = useState(item.time);
   const [pending, startTransition] = useTransition();
+  // Azonnal mutatjuk az új állapotot, a szerver válaszáig sem kell várni.
+  const [status, setStatus] = useOptimistic<TodayItem["status"]>(item.status);
+  const [popped, setPopped] = useState(false);
+  const [dx, setDx] = useState(0);
+  const swipe = useRef<{ x: number; y: number; active: boolean; moved: boolean } | null>(null);
 
-  const run = (fn: () => Promise<void>) => {
+  const run = (next: TodayItem["status"], fn: () => Promise<void>) => {
     setOpen(false);
     setShowTime(false);
-    startTransition(fn);
+    startTransition(async () => {
+      setStatus(next);
+      await fn();
+    });
   };
 
-  const complete = (actualTime?: string) =>
-    run(() =>
-      item.kind === "dose"
-        ? logDose(petId, item.medicationId, item.scheduledFor, "given", actualTime, day)
-        : item.kind === "task"
-          ? setTaskStatus(item.eventId, "done", day)
-          : logMeal(petId, day, item.meal, "eaten"),
+  const complete = (actualTime?: string) => {
+    haptic();
+    setPopped(true);
+    run(
+      item.kind === "dose" ? "given" : item.kind === "task" ? "done" : "eaten",
+      () =>
+        item.kind === "dose"
+          ? logDose(petId, item.medicationId, item.scheduledFor, "given", actualTime, day)
+          : item.kind === "task"
+            ? setTaskStatus(item.eventId, "done", day)
+            : logMeal(petId, day, item.meal, "eaten"),
     );
+  };
+  // Kihagyás (balra húzás): nem kapta meg / nem ette meg / elmaradt.
+  const skip = () => {
+    haptic([10, 40, 10]);
+    run(item.kind === "meal" ? "refused" : "missed", () =>
+      item.kind === "dose"
+        ? logDose(petId, item.medicationId, item.scheduledFor, "missed", undefined, day)
+        : item.kind === "task"
+          ? setTaskStatus(item.eventId, "missed")
+          : logMeal(petId, day, item.meal, "refused"),
+    );
+  };
   const undo = () =>
-    run(() =>
+    run(null, () =>
       item.kind === "dose"
         ? undoDose(item.logId!)
         : item.kind === "task"
@@ -85,35 +113,112 @@ function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petI
           : undoMeal(item.logId!),
     );
 
-  const logged = item.status !== null;
-  const done = isDone(item.status);
+  const logged = status !== null;
+  const done = isDone(status);
   const statusText =
-    item.status === null
+    status === null
       ? null
-      : item.kind === "meal" && item.status === "refused"
+      : item.kind === "meal" && status === "refused"
         ? MEAL_REFUSED
-        : item.kind === "task" && item.status === "missed"
+        : item.kind === "task" && status === "missed"
           ? "Elmaradt"
-          : STATUS_TEXT[item.status];
+          : STATUS_TEXT[status];
   const Icon = item.kind === "dose" ? Pill : item.kind === "task" ? ClipboardList : Utensils;
+  const doneLabel = item.kind === "dose" ? "Beadva" : item.kind === "meal" ? "Megette" : "Kész";
+  const skipLabel = item.kind === "dose" ? "Nem kapta meg" : item.kind === "meal" ? MEAL_REFUSED : "Elmaradt";
+
+  // Húzás: jobbra kész, balra kihagyva. A függőleges görgetést nem zavarja.
+  const swipeHandlers = logged
+    ? {}
+    : {
+        onPointerDown: (e: React.PointerEvent) => {
+          if (e.pointerType === "mouse" && e.button !== 0) return;
+          swipe.current = { x: e.clientX, y: e.clientY, active: false, moved: false };
+        },
+        onPointerMove: (e: React.PointerEvent) => {
+          const s = swipe.current;
+          if (!s) return;
+          const mx = e.clientX - s.x;
+          const my = e.clientY - s.y;
+          if (!s.active) {
+            if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)) swipe.current = null;
+            else if (Math.abs(mx) > 10) {
+              s.active = true;
+              s.moved = true;
+              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+            }
+            return;
+          }
+          const next = Math.max(-120, Math.min(120, mx));
+          if (Math.abs(next) >= SWIPE_LIMIT && Math.abs(dx) < SWIPE_LIMIT) haptic(6);
+          setDx(next);
+        },
+        onPointerUp: () => {
+          const s = swipe.current;
+          if (s?.active) {
+            if (dx >= SWIPE_LIMIT) complete();
+            else if (dx <= -SWIPE_LIMIT) skip();
+          }
+          setDx(0);
+          // A húzás végén ne fusson le a gombok kattintása is.
+          if (s?.moved) setTimeout(() => (swipe.current = null), 0);
+          else swipe.current = null;
+        },
+        onPointerCancel: () => {
+          swipe.current = null;
+          setDx(0);
+        },
+        onClickCapture: (e: React.MouseEvent) => {
+          if (swipe.current?.moved) {
+            e.stopPropagation();
+            e.preventDefault();
+          }
+        },
+      };
 
   return (
-    <li className={`border-b border-border last:border-b-0 ${pending ? "opacity-60" : ""}`}>
-      <div className="flex min-h-14 items-center gap-3 py-1.5">
+    <li className={`relative overflow-hidden border-b border-border last:border-b-0 ${pending ? "opacity-80" : ""}`}>
+      {dx !== 0 && (
+        <div aria-hidden="true" className="absolute inset-0 flex items-center justify-between text-sm font-semibold text-on-primary">
+          <span
+            className={`flex h-full flex-1 items-center gap-1.5 pl-4 transition-colors ${dx > 0 ? (dx >= SWIPE_LIMIT ? "bg-success" : "bg-success/60") : ""}`}
+          >
+            {dx > 0 && (
+              <>
+                <Check size={18} strokeWidth={3} /> {doneLabel}
+              </>
+            )}
+          </span>
+          <span
+            className={`flex h-full flex-1 items-center justify-end gap-1.5 pr-4 transition-colors ${dx < 0 ? (dx <= -SWIPE_LIMIT ? "bg-danger" : "bg-danger/60") : ""}`}
+          >
+            {dx < 0 && (
+              <>
+                {skipLabel} <X size={18} strokeWidth={3} />
+              </>
+            )}
+          </span>
+        </div>
+      )}
+      <div
+        {...swipeHandlers}
+        className="relative flex min-h-14 touch-pan-y select-none items-center gap-3 bg-surface py-1.5"
+        style={{ transform: dx ? `translateX(${dx}px)` : undefined, transition: dx ? "none" : "transform 0.2s ease-out" }}
+      >
         <button
           type="button"
-          onClick={() => (logged ? setOpen((o) => !o) : complete())}
+          onClick={() => (logged ? setOpen(true) : complete())}
           aria-label={logged ? `${item.title}: ${statusText}. Módosítás` : `${item.title} kész`}
           className="flex size-11 shrink-0 items-center justify-center"
         >
           <span
-            className={`flex size-6 items-center justify-center rounded-md ${
+            className={`flex size-6 items-center justify-center rounded-md transition-colors ${
               done
                 ? "bg-primary text-on-primary"
                 : logged
                   ? "bg-danger text-on-primary"
                   : "border-[1.5px] border-text-muted/60"
-            }`}
+            } ${popped && logged ? "animate-pop" : ""}`}
           >
             {done && <Check size={15} strokeWidth={3} aria-hidden="true" />}
             {logged && !done && <X size={15} strokeWidth={3} aria-hidden="true" />}
@@ -130,95 +235,124 @@ function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petI
               <span className={done ? "text-success" : "text-danger"}>
                 {(!hideTime || item.detail) && " · "}
                 {statusText}
-                {item.doneAt && ` ${item.doneAt}`}
+                {item.status === status && item.doneAt && ` ${item.doneAt}`}
               </span>
             )}
           </p>
         </div>
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
-          aria-expanded={open}
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
           aria-label="További lehetőségek"
-          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-text-muted hover:bg-border"
+          className="mr-1 flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-text-muted hover:bg-border"
         >
           <MoreHorizontal size={20} aria-hidden="true" />
         </button>
       </div>
 
-      {open && (
-        <div className="mb-3 ml-14 flex flex-col gap-2">
+      <Sheet
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setShowTime(false);
+        }}
+        title={
+          <span className="flex items-center gap-2">
+            <Icon size={18} className="shrink-0 text-link" aria-hidden="true" />
+            <span className="truncate">{item.title}</span>
+          </span>
+        }
+      >
+        <p className="-mt-1 mb-3 text-sm text-text-muted">
+          {[item.time === "–" ? "Bármikor" : item.time, item.detail, statusText].filter(Boolean).join(" · ")}
+        </p>
+        <div className="flex flex-col gap-2">
           {logged ? (
-            <button type="button" onClick={undo} className="h-10 self-start rounded-lg bg-primary-soft px-3 text-sm font-semibold text-link hover:opacity-80">
+            <SheetButton onClick={undo} icon={Undo2}>
               Visszavonás
-            </button>
+            </SheetButton>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {item.kind === "dose" ? (
-                <>
-                  <OptionButton onClick={() => setShowTime((v) => !v)}>
-                    <Clock size={15} aria-hidden="true" /> Más időpontban
-                  </OptionButton>
-                  <OptionButton onClick={() => run(() => logDose(petId, item.medicationId, item.scheduledFor, "missed", undefined, day))}>
-                    Nem kapta meg
-                  </OptionButton>
-                  <OptionButton onClick={() => run(() => logDose(petId, item.medicationId, item.scheduledFor, "refused", undefined, day))}>
-                    Elutasította
-                  </OptionButton>
-                </>
-              ) : item.kind === "task" ? (
-                <>
-                  <OptionButton onClick={() => run(() => setTaskStatus(item.eventId, "missed"))}>Elmaradt</OptionButton>
-                  <Link
-                    href={`/naptar/${item.eventId}`}
-                    className="flex h-10 items-center rounded-lg border border-border-strong bg-surface px-3 text-sm font-medium hover:bg-surface-muted"
-                  >
-                    Részletek
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <OptionButton onClick={() => run(() => logMeal(petId, day, item.meal, "partial"))}>
-                    Részben ette meg
-                  </OptionButton>
-                  <OptionButton onClick={() => run(() => logMeal(petId, day, item.meal, "refused"))}>
-                    Nem ette meg
-                  </OptionButton>
-                </>
+            <>
+              <SheetButton onClick={() => complete()} icon={Check} primary>
+                {doneLabel}
+              </SheetButton>
+              {item.kind === "dose" && (
+                <SheetButton onClick={() => setShowTime((v) => !v)} icon={Clock}>
+                  Más időpontban adtam be
+                </SheetButton>
               )}
-            </div>
-          )}
-          {showTime && (
-            <div className="flex gap-2">
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                aria-label="Tényleges időpont"
-                className="h-10 rounded-lg border border-border-strong bg-surface px-3 text-[15px]"
-              />
-              <button
-                type="button"
-                onClick={() => complete(time)}
-                className="h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary hover:bg-primary-hover"
-              >
-                Beadva
-              </button>
-            </div>
+              {showTime && (
+                <div className="flex gap-2 rounded-2xl bg-surface-muted p-2">
+                  <input
+                    type="time"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    aria-label="Tényleges időpont"
+                    className="h-11 flex-1 rounded-xl border border-border-strong bg-surface px-3 text-[15px]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => complete(time)}
+                    className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-on-primary hover:bg-primary-hover"
+                  >
+                    Mentés
+                  </button>
+                </div>
+              )}
+              {item.kind === "meal" && (
+                <SheetButton onClick={() => run("partial", () => logMeal(petId, day, item.meal, "partial"))} icon={CircleDashed}>
+                  Részben ette meg
+                </SheetButton>
+              )}
+              <SheetButton onClick={skip} icon={X}>
+                {skipLabel}
+              </SheetButton>
+              {item.kind === "dose" && (
+                <SheetButton
+                  onClick={() => run("refused", () => logDose(petId, item.medicationId, item.scheduledFor, "refused", undefined, day))}
+                  icon={Ban}
+                >
+                  Elutasította
+                </SheetButton>
+              )}
+              {item.kind === "task" && (
+                <Link
+                  href={`/naptar/${item.eventId}`}
+                  className="flex h-12 items-center gap-3 rounded-2xl bg-surface-muted px-4 text-[15px] font-semibold hover:bg-border"
+                >
+                  <ExternalLink size={18} className="text-text-muted" aria-hidden="true" /> Részletek
+                </Link>
+              )}
+              <p className="mt-1 text-center text-xs text-text-muted">Tipp: a sort jobbra húzva kész, balra húzva kihagyva.</p>
+            </>
           )}
         </div>
-      )}
+      </Sheet>
     </li>
   );
 }
 
-function OptionButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+function SheetButton({
+  onClick,
+  icon: Icon,
+  primary = false,
+  children,
+}: {
+  onClick: () => void;
+  icon: typeof Check;
+  primary?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex h-10 items-center gap-1.5 rounded-lg border border-border-strong bg-surface px-3 text-sm font-medium hover:bg-surface-muted"
+      className={`flex h-12 items-center gap-3 rounded-2xl px-4 text-left text-[15px] font-semibold ${
+        primary ? "bg-primary text-on-primary hover:bg-primary-hover" : "bg-surface-muted hover:bg-border"
+      }`}
     >
+      <Icon size={18} className={primary ? "" : "text-text-muted"} aria-hidden="true" />
       {children}
     </button>
   );

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ChevronRight, FileDown, FlaskConical, FileText, HeartPulse, Pill, Scale, ShieldAlert, Stethoscope, Syringe, UserRound } from "lucide-react";
+import { ChevronRight, FileDown, FlaskConical, FileText, HeartPulse, History, Pill, Scale, ShieldAlert, Stethoscope, Syringe, UserRound } from "lucide-react";
 import { PetAvatar } from "@/components/pet-switcher";
+import { Sparkline } from "@/components/sparkline";
 import { ButtonLink, Card, PageHeader } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { petPhotoUrl, requireCurrentPet } from "@/lib/pets";
@@ -15,15 +16,14 @@ export default async function HealthPage() {
   const count = (table: "allergies" | "conditions" | "vaccinations" | "medical_events" | "vets" | "documents") =>
     supabase.from(table).select("id", { count: "exact", head: true }).eq("pet_id", pet.id);
 
-  const [latestWeight, allergies, conditions, vaccinations, events, vets, docs] = await Promise.all([
+  const [{ data: recentWeights }, allergies, conditions, vaccinations, events, vets, docs] = await Promise.all([
     supabase
       .from("weights")
-      .select("weight_kg, body_condition")
+      .select("weight_kg")
       .eq("pet_id", pet.id)
       .order("measured_on", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .limit(12),
     count("allergies"),
     count("conditions"),
     count("vaccinations"),
@@ -45,14 +45,21 @@ export default async function HealthPage() {
     { label: "Fajta", value: pet.breed },
     { label: "Kor", value: formatAge(pet.birth_date) },
     { label: "Nem", value: pet.sex === "kan" ? "Kan" : pet.sex === "szuka" ? "Szuka" : null },
-    { label: "Súly", value: latestWeight.data ? formatWeight(Number(latestWeight.data.weight_kg)) : null },
+    { label: "Súly", value: recentWeights?.length ? formatWeight(Number(recentWeights[0].weight_kg)) : null },
     { label: "Chipszám", value: pet.chip_number },
     { label: "Testkondíció", value: latestBcs ? `${latestBcs} / 9 · ${bcsInfo(latestBcs).label}` : null },
   ];
 
   const sections = [
+    { href: "/egeszseg/idovonal", label: "Idővonal", icon: History, meta: "Minden esemény egy helyen, időrendben" },
     { href: "/gyogyszerek", label: "Gyógyszerek és kiegészítők", icon: Pill, meta: "Ütemezés, vásárlások" },
-    { href: "/egeszseg/suly", label: "Súly", icon: Scale, meta: "Mérések és diagram" },
+    {
+      href: "/egeszseg/suly",
+      label: "Súly",
+      icon: Scale,
+      meta: "Mérések és diagram",
+      spark: (recentWeights ?? []).map((w) => Number(w.weight_kg)).reverse(),
+    },
     {
       href: "/egeszseg/allergiak",
       label: "Allergiák és betegségek",
@@ -104,7 +111,7 @@ export default async function HealthPage() {
       </Card>
 
       <ul className="flex flex-col gap-2">
-        {sections.map(({ href, label, icon: Icon, meta }) => (
+        {sections.map(({ href, label, icon: Icon, meta, spark }) => (
           <li key={href}>
             <Link
               href={href}
@@ -117,6 +124,7 @@ export default async function HealthPage() {
                 <span className="block font-semibold">{label}</span>
                 <span className="block text-sm text-text-muted">{meta}</span>
               </span>
+              {spark && <Sparkline values={spark} color="var(--series-1)" width={72} height={28} label="Súlyváltozás az utolsó mérésekben" />}
               <ChevronRight size={18} className="text-text-muted" aria-hidden="true" />
             </Link>
           </li>

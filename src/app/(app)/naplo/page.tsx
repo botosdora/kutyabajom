@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { BarChart3, ChevronLeft, ChevronRight, History, ListTodo, NotebookPen } from "lucide-react";
+import { BarChart3, CalendarRange, ChevronLeft, ChevronRight, History, ListTodo, NotebookPen } from "lucide-react";
+import { JournalHeatmap } from "@/components/journal-heatmap";
 import { LogEntryCard } from "@/components/log-entry-card";
 import { LogForm } from "@/components/log-form";
 import { ButtonLink, Card, EmptyState, LoadMore, PageHeader, pageLimit, SectionTitle } from "@/components/ui";
@@ -20,7 +21,12 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
   const day = nap && /^\d{4}-\d{2}-\d{2}$/.test(nap) && nap <= today ? nap : today;
   const supabase = await createClient();
 
-  const [{ data: log }, { data: recent, count }, dayItems] = await Promise.all([
+  // Az elmúlt 8 hét naptára hétfőtől vasárnapig (a hőtérképhez).
+  const weekday = (new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7;
+  const gridStart = addDays(today, -weekday - 7 * 7);
+  const gridDays = Array.from({ length: 56 }, (_, i) => addDays(gridStart, i));
+
+  const [{ data: log }, { data: recent, count }, dayItems, { data: heatLogs }] = await Promise.all([
     supabase.from("daily_logs").select("*").eq("pet_id", pet.id).eq("day", day).maybeSingle(),
     supabase
       .from("daily_logs")
@@ -30,6 +36,12 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
       .order("day", { ascending: false })
       .limit(limit),
     getDayItems(pet, day),
+    supabase
+      .from("daily_logs")
+      .select("day, mood, appetite, activity, pain, water")
+      .eq("pet_id", pet.id)
+      .gte("day", gridStart)
+      .lte("day", today),
   ]);
   const summaries = recent?.length
     ? await getDoseSummaries(pet.id, recent[recent.length - 1].day, recent[0].day)
@@ -76,6 +88,11 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
       <SectionTitle icon={NotebookPen}>Megfigyelések</SectionTitle>
       <Card className="mb-8">
         <LogForm key={day} action={saveLog} petId={pet.id} day={day} log={log} />
+      </Card>
+
+      <SectionTitle icon={CalendarRange}>Az elmúlt 8 hét</SectionTitle>
+      <Card className="mb-8">
+        <JournalHeatmap logs={heatLogs ?? []} days={gridDays} today={today} />
       </Card>
 
       <SectionTitle icon={History}>Korábbi bejegyzések</SectionTitle>
