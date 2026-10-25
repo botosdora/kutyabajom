@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PawPrint } from "lucide-react";
-import { haptic } from "@/lib/haptics";
 
 // Napi haladás körként, mellette a "3 / 8" számláló. A kör simán telik, és ha
 // most lett meg az utolsó teendő is, mancsok hullanak (a betöltéskor nem).
@@ -24,10 +23,7 @@ export function ProgressRing({ done, total }: { done: number; total: number }) {
 
   useEffect(() => {
     if (wasComplete.current === false && complete) {
-      const start = setTimeout(() => {
-        setCelebrate(true);
-        haptic([15, 60, 25]);
-      }, 0);
+      const start = setTimeout(() => setCelebrate(true), 0);
       const stop = setTimeout(() => setCelebrate(false), 3200);
       wasComplete.current = complete;
       return () => {

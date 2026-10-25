@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { Ban, Check, CircleDashed, ClipboardList, Clock, ExternalLink, MoreHorizontal, Pill, Undo2, Utensils, X } from "lucide-react";
 import { logDose, logMeal, undoDose, undoMeal } from "@/app/(app)/today-actions";
 import { setTaskStatus } from "@/app/(app)/naptar/actions";
 import { Sheet } from "@/components/sheet";
-import { haptic } from "@/lib/haptics";
 
 export type TodayItem =
   | {
@@ -58,8 +57,6 @@ function isDone(status: TodayItem["status"]) {
   return status === "given" || status === "eaten" || status === "partial" || status === "done";
 }
 
-const SWIPE_LIMIT = 72;
-
 function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petId: string; day: string; hideTime?: boolean }) {
   const [open, setOpen] = useState(false);
   const [showTime, setShowTime] = useState(false);
@@ -68,8 +65,6 @@ function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petI
   // Azonnal mutatjuk az új állapotot, a szerver válaszáig sem kell várni.
   const [status, setStatus] = useOptimistic<TodayItem["status"]>(item.status);
   const [popped, setPopped] = useState(false);
-  const [dx, setDx] = useState(0);
-  const swipe = useRef<{ x: number; y: number; active: boolean; moved: boolean } | null>(null);
 
   const run = (next: TodayItem["status"], fn: () => Promise<void>) => {
     setOpen(false);
@@ -81,7 +76,6 @@ function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petI
   };
 
   const complete = (actualTime?: string) => {
-    haptic();
     setPopped(true);
     run(
       item.kind === "dose" ? "given" : item.kind === "task" ? "done" : "eaten",
@@ -93,9 +87,8 @@ function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petI
             : logMeal(petId, day, item.meal, "eaten"),
     );
   };
-  // Kihagyás (balra húzás): nem kapta meg / nem ette meg / elmaradt.
-  const skip = () => {
-    haptic([10, 40, 10]);
+  // Kihagyás: nem kapta meg / nem ette meg / elmaradt.
+  const skip = () =>
     run(item.kind === "meal" ? "refused" : "missed", () =>
       item.kind === "dose"
         ? logDose(petId, item.medicationId, item.scheduledFor, "missed", undefined, day)
@@ -103,7 +96,6 @@ function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petI
           ? setTaskStatus(item.eventId, "missed")
           : logMeal(petId, day, item.meal, "refused"),
     );
-  };
   const undo = () =>
     run(null, () =>
       item.kind === "dose"
@@ -127,84 +119,9 @@ function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petI
   const doneLabel = item.kind === "dose" ? "Beadva" : item.kind === "meal" ? "Megette" : "Kész";
   const skipLabel = item.kind === "dose" ? "Nem kapta meg" : item.kind === "meal" ? MEAL_REFUSED : "Elmaradt";
 
-  // Húzás: jobbra kész, balra kihagyva. A függőleges görgetést nem zavarja.
-  const swipeHandlers = logged
-    ? {}
-    : {
-        onPointerDown: (e: React.PointerEvent) => {
-          if (e.pointerType === "mouse" && e.button !== 0) return;
-          swipe.current = { x: e.clientX, y: e.clientY, active: false, moved: false };
-        },
-        onPointerMove: (e: React.PointerEvent) => {
-          const s = swipe.current;
-          if (!s) return;
-          const mx = e.clientX - s.x;
-          const my = e.clientY - s.y;
-          if (!s.active) {
-            if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)) swipe.current = null;
-            else if (Math.abs(mx) > 10) {
-              s.active = true;
-              s.moved = true;
-              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-            }
-            return;
-          }
-          const next = Math.max(-120, Math.min(120, mx));
-          if (Math.abs(next) >= SWIPE_LIMIT && Math.abs(dx) < SWIPE_LIMIT) haptic(6);
-          setDx(next);
-        },
-        onPointerUp: () => {
-          const s = swipe.current;
-          if (s?.active) {
-            if (dx >= SWIPE_LIMIT) complete();
-            else if (dx <= -SWIPE_LIMIT) skip();
-          }
-          setDx(0);
-          // A húzás végén ne fusson le a gombok kattintása is.
-          if (s?.moved) setTimeout(() => (swipe.current = null), 0);
-          else swipe.current = null;
-        },
-        onPointerCancel: () => {
-          swipe.current = null;
-          setDx(0);
-        },
-        onClickCapture: (e: React.MouseEvent) => {
-          if (swipe.current?.moved) {
-            e.stopPropagation();
-            e.preventDefault();
-          }
-        },
-      };
-
   return (
-    <li className={`relative overflow-hidden border-b border-border last:border-b-0 ${pending ? "opacity-80" : ""}`}>
-      {dx !== 0 && (
-        <div aria-hidden="true" className="absolute inset-0 flex items-center justify-between text-sm font-semibold text-on-primary">
-          <span
-            className={`flex h-full flex-1 items-center gap-1.5 pl-4 transition-colors ${dx > 0 ? (dx >= SWIPE_LIMIT ? "bg-success" : "bg-success/60") : ""}`}
-          >
-            {dx > 0 && (
-              <>
-                <Check size={18} strokeWidth={3} /> {doneLabel}
-              </>
-            )}
-          </span>
-          <span
-            className={`flex h-full flex-1 items-center justify-end gap-1.5 pr-4 transition-colors ${dx < 0 ? (dx <= -SWIPE_LIMIT ? "bg-danger" : "bg-danger/60") : ""}`}
-          >
-            {dx < 0 && (
-              <>
-                {skipLabel} <X size={18} strokeWidth={3} />
-              </>
-            )}
-          </span>
-        </div>
-      )}
-      <div
-        {...swipeHandlers}
-        className="relative flex min-h-14 touch-pan-y select-none items-center gap-3 bg-surface py-1.5"
-        style={{ transform: dx ? `translateX(${dx}px)` : undefined, transition: dx ? "none" : "transform 0.2s ease-out" }}
-      >
+    <li className={`border-b border-border last:border-b-0 ${pending ? "opacity-80" : ""}`}>
+      <div className="flex min-h-14 items-center gap-3 py-1.5">
         <button
           type="button"
           onClick={() => (logged ? setOpen(true) : complete())}
@@ -324,7 +241,6 @@ function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petI
                   <ExternalLink size={18} className="text-text-muted" aria-hidden="true" /> Részletek
                 </Link>
               )}
-              <p className="mt-1 text-center text-xs text-text-muted">Tipp: a sort jobbra húzva kész, balra húzva kihagyva.</p>
             </>
           )}
         </div>
