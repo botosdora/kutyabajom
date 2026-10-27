@@ -9,6 +9,7 @@ import type { Tables } from "@/lib/database.types";
 import { formatLabValue, formatRange, labStatus } from "@/lib/labs";
 import { colors, Empty, PdfDoc, s, Section, Table } from "./base";
 import { getDoseSummaries, type DoseSummary } from "@/lib/day-items";
+import { PdfTrendChart } from "./trend-chart";
 
 type Pet = Tables<"pets">;
 
@@ -350,6 +351,9 @@ export async function journalPdf(pet: Pet, from: string, to: string) {
               <JournalDay key={day} day={day} log={logByDay.get(day) ?? null} doses={doseSummaries.get(day)} />
             ))}
           </Section>
+          {logs.length > 0 && (
+            <PdfTrendChart title="Diagram (0–10)" logs={logs} from={from} to={to} />
+          )}
         </>
       )}
     </PdfDoc>,
