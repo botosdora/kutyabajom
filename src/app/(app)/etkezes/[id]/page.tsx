@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { ActionForm, AddPanel, DeleteButton, SubmitButton } from "@/components/forms";
 import { FoodFields } from "@/components/food-fields";
+import { CircleStop, ThumbsDown, Utensils } from "lucide-react";
+import { SheetLauncher } from "@/components/sheet";
 import { Card, Field, PageHeader, SectionTitle, TextArea } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatHuf, todayIso } from "@/lib/format";
@@ -23,7 +25,25 @@ export default async function FoodPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
-      <PageHeader title={food.name} subtitle={`${foodKindLabel(food.kind)} · ${STATUS_LABEL[food.status]}`} back={{ href: "/etkezes", label: "Étkezés" }} />
+      <PageHeader
+        title={food.name}
+        subtitle={`${foodKindLabel(food.kind)} · ${STATUS_LABEL[food.status]}`}
+        back={{ href: "/etkezes", label: "Étkezés" }}
+        icon={Utensils}
+        action={
+          <SheetLauncher title={`${food.name} szerkesztése`}>
+            <ActionForm action={updateFood}>
+              <input type="hidden" name="id" value={food.id} />
+              <FoodFields food={food} />
+              {food.status === "failed" && <TextArea label="Miért nem vált be?" name="fail_reason" defaultValue={food.fail_reason ?? ""} />}
+              <SubmitButton>Mentés</SubmitButton>
+            </ActionForm>
+            <div className="mt-6 flex justify-end border-t border-border pt-4">
+              <DeleteButton action={deleteFood.bind(null, food.id)} label="Törlés" confirmText="Biztosan törlöd? A vásárlásai is törlődnek." />
+            </div>
+          </SheetLauncher>
+        }
+      />
 
       <Card className="mb-6 flex flex-col gap-2 text-[15px]">
         {food.food_type && <p><span className="font-semibold">Típus:</span> {food.food_type}</p>}
@@ -33,17 +53,33 @@ export default async function FoodPage({ params }: { params: Promise<{ id: strin
         {food.notes && <p className="whitespace-pre-line text-text-muted">{food.notes}</p>}
       </Card>
 
-      <details className="mb-6 rounded-2xl border border-border bg-surface">
-        <summary className="cursor-pointer px-4 py-3 font-semibold">Szerkesztés</summary>
-        <div className="px-4 pb-4">
-          <ActionForm action={updateFood}>
+      <div className="mb-6 flex flex-wrap gap-2">
+        {food.status === "active" ? (
+          <>
+            <ActionForm action={setFoodStatus} className="">
+              <input type="hidden" name="id" value={food.id} />
+              <input type="hidden" name="status" value="past" />
+              <SubmitButton variant="secondary">
+                <CircleStop size={18} aria-hidden="true" /> Már nem adjuk
+              </SubmitButton>
+            </ActionForm>
+            <SheetLauncher title="Nem vált be" label="Nem vált be" icon={<ThumbsDown size={18} aria-hidden="true" />}>
+              <ActionForm action={setFoodStatus}>
+                <input type="hidden" name="id" value={food.id} />
+                <input type="hidden" name="status" value="failed" />
+                <TextArea label="Miért nem vált be?" name="fail_reason" placeholder="pl. viszketést okozott, nem ette meg" />
+                <SubmitButton>Mentés</SubmitButton>
+              </ActionForm>
+            </SheetLauncher>
+          </>
+        ) : (
+          <ActionForm action={setFoodStatus} className="">
             <input type="hidden" name="id" value={food.id} />
-            <FoodFields food={food} />
-            {food.status === "failed" && <TextArea label="Miért nem vált be?" name="fail_reason" defaultValue={food.fail_reason ?? ""} />}
-            <SubmitButton>Mentés</SubmitButton>
+            <input type="hidden" name="status" value="active" />
+            <SubmitButton>Újra adjuk</SubmitButton>
           </ActionForm>
-        </div>
-      </details>
+        )}
+      </div>
 
       <section className="mb-6">
         <SectionTitle action={total > 0 && <span className="text-sm text-text-muted">Összesen: {formatHuf(total)}</span>}>Vásárlások</SectionTitle>
@@ -75,37 +111,6 @@ export default async function FoodPage({ params }: { params: Promise<{ id: strin
         </AddPanel>
       </section>
 
-      <section className="mb-6">
-        <SectionTitle>Állapot</SectionTitle>
-        <div className="flex flex-col gap-3">
-          {food.status !== "active" && (
-            <ActionForm action={setFoodStatus} className="">
-              <input type="hidden" name="id" value={food.id} />
-              <input type="hidden" name="status" value="active" />
-              <SubmitButton variant="secondary" className="w-full">Újra adjuk</SubmitButton>
-            </ActionForm>
-          )}
-          {food.status === "active" && (
-            <ActionForm action={setFoodStatus} className="">
-              <input type="hidden" name="id" value={food.id} />
-              <input type="hidden" name="status" value="past" />
-              <SubmitButton variant="secondary" className="w-full">Már nem adjuk</SubmitButton>
-            </ActionForm>
-          )}
-          {food.status !== "failed" && (
-            <Card>
-              <ActionForm action={setFoodStatus}>
-                <input type="hidden" name="id" value={food.id} />
-                <input type="hidden" name="status" value="failed" />
-                <TextArea label="Nem vált be – miért?" name="fail_reason" placeholder="pl. viszketést okozott" />
-                <SubmitButton variant="secondary">Nem vált be</SubmitButton>
-              </ActionForm>
-            </Card>
-          )}
-        </div>
-      </section>
-
-      <DeleteButton action={deleteFood.bind(null, food.id)} label="Törlés" confirmText="Biztosan törlöd? A vásárlásai is törlődnek." />
     </>
   );
 }

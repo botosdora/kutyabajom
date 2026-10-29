@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ActionForm, DeleteButton, SubmitButton } from "@/components/forms";
 import { EventForm } from "@/components/event-form";
+import { SheetLauncher } from "@/components/sheet";
 import { Alert, buttonClass, Card, Field, PageHeader, Select, TextArea } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { describeRepeat, EVENT_STATUS_LABELS, VET_TYPES, vetTypeLabel } from "@/lib/calendar";
@@ -33,6 +34,29 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         title={event.title}
         subtitle={`${formatDate(event.event_date)}${event.event_time ? `, ${shortTime(event.event_time)}` : ""} · ${typeLabel}`}
         back={{ href: `/naptar?nap=${event.event_date}`, label: "Naptár" }}
+        action={
+          <SheetLauncher title="Esemény szerkesztése">
+            <EventForm
+              action={updateEvent}
+              petId={event.pet_id}
+              event={event}
+              vetTypes={VET_TYPES}
+              taskTypes={taskTypes}
+              vets={vetOptions(vets)}
+              defaultDate={event.event_date}
+            />
+            <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+              <DeleteButton action={deleteEvent.bind(null, event.id)} label={event.series_id ? "Csak ez az alkalom törlése" : "Esemény törlése"} />
+              {event.series_id && (
+                <DeleteButton
+                  action={deleteSeriesFrom.bind(null, event.series_id, event.event_date)}
+                  label="Ez és a későbbi alkalmak törlése"
+                  confirmText="Törlöd ezt és a sorozat összes későbbi, még tervezett alkalmát?"
+                />
+              )}
+            </div>
+          </SheetLauncher>
+        }
       />
 
       <Card className="mb-6 flex flex-col gap-2 text-[15px]">
@@ -132,31 +156,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         </form>
       )}
 
-      <details className="mb-6 rounded-2xl border border-border bg-surface">
-        <summary className="cursor-pointer px-4 py-3 font-semibold">Szerkesztés</summary>
-        <div className="px-4 pb-4">
-          <EventForm
-            action={updateEvent}
-            petId={event.pet_id}
-            event={event}
-            vetTypes={VET_TYPES}
-            taskTypes={taskTypes}
-            vets={vetOptions(vets)}
-            defaultDate={event.event_date}
-          />
-        </div>
-      </details>
-
-      <div className="flex flex-wrap gap-2">
-        <DeleteButton action={deleteEvent.bind(null, event.id)} label={event.series_id ? "Csak ez az alkalom törlése" : "Esemény törlése"} />
-        {event.series_id && (
-          <DeleteButton
-            action={deleteSeriesFrom.bind(null, event.series_id, event.event_date)}
-            label="Ez és a későbbi alkalmak törlése"
-            confirmText="Törlöd ezt és a sorozat összes későbbi, még tervezett alkalmát?"
-          />
-        )}
-      </div>
     </>
   );
 }

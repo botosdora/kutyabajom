@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Cake, FileText, FlaskConical, Scale, ShieldAlert, Stethoscope, Syringe } from "lucide-react";
+import { Cake, FileText, FlaskConical, Pill, Scale, ShieldAlert, Stethoscope, Syringe } from "lucide-react";
 import { formatShortDate } from "@/lib/format";
 
 export type TimelineEntry = {
@@ -18,6 +18,7 @@ export type TimelineEntry = {
 const KINDS = {
   medical: { label: "Orvosi", icon: Stethoscope, color: "var(--series-1)" },
   vaccine: { label: "Oltás", icon: Syringe, color: "var(--series-3)" },
+  medication: { label: "Gyógyszer", icon: Pill, color: "var(--series-6)" },
   weight: { label: "Súly", icon: Scale, color: "var(--series-4)" },
   lab: { label: "Labor", icon: FlaskConical, color: "var(--series-7)" },
   document: { label: "Dokumentum", icon: FileText, color: "var(--series-5)" },

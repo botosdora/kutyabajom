@@ -5,6 +5,7 @@ import { DocumentList } from "@/components/document-list";
 import { DocumentUpload } from "@/components/document-upload";
 import { ActionForm, AddPanel, DeleteButton, SubmitButton } from "@/components/forms";
 import { MedicalEventFields } from "@/components/medical-event-fields";
+import { SheetLauncher } from "@/components/sheet";
 import { Alert, Card, Field, PageHeader, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { DOC_TYPES } from "@/lib/documents";
@@ -43,6 +44,21 @@ export default async function MedicalEventPage({
         title={event.title}
         subtitle={`${formatDate(event.event_date)} · ${eventKindLabel(event.kind)}`}
         back={{ href: "/egeszseg/beavatkozasok", label: "Beavatkozások" }}
+        action={
+          <SheetLauncher title="Beavatkozás szerkesztése">
+            <ActionForm action={updateMedicalEvent}>
+              <input type="hidden" name="id" value={event.id} />
+              <MedicalEventFields event={event} kinds={EVENT_KINDS} vets={vetOptions(vets)} today={todayIso()} />
+              <SubmitButton>Mentés</SubmitButton>
+            </ActionForm>
+            <div className="mt-6 flex justify-end border-t border-border pt-4">
+              <DeleteButton
+                action={deleteRecord.bind(null, "medical_events", event.id, `/egeszseg/beavatkozasok/${event.id}`)}
+                label="Esemény törlése"
+              />
+            </div>
+          </SheetLauncher>
+        }
       />
 
       {uj && (
@@ -66,17 +82,6 @@ export default async function MedicalEventPage({
           {event.description && <p className="whitespace-pre-line">{event.description}</p>}
         </Card>
       )}
-
-      <details className="mb-6 rounded-2xl border border-border bg-surface">
-        <summary className="cursor-pointer px-4 py-3 font-semibold">Szerkesztés</summary>
-        <div className="px-4 pb-4">
-          <ActionForm action={updateMedicalEvent}>
-            <input type="hidden" name="id" value={event.id} />
-            <MedicalEventFields event={event} kinds={EVENT_KINDS} vets={vetOptions(vets)} today={todayIso()} />
-            <SubmitButton>Mentés</SubmitButton>
-          </ActionForm>
-        </div>
-      </details>
 
       {!!labs?.length && (
         <section className="mb-6">
@@ -157,10 +162,6 @@ export default async function MedicalEventPage({
         </AddPanel>
       </section>
 
-      <DeleteButton
-        action={deleteRecord.bind(null, "medical_events", event.id, `/egeszseg/beavatkozasok/${event.id}`)}
-        label="Esemény törlése"
-      />
     </>
   );
 }

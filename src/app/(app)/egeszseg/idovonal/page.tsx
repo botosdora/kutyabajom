@@ -3,7 +3,8 @@ import { HealthTimeline, type TimelineEntry } from "@/components/health-timeline
 import { EmptyState, PageHeader } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { docTypeLabel } from "@/lib/documents";
-import { formatWeight } from "@/lib/format";
+import { formatWeight, todayIso } from "@/lib/format";
+import { describeRhythm, stopReasonLabel } from "@/lib/medications";
 import { eventKindLabel } from "@/lib/health";
 import { requireCurrentPet } from "@/lib/pets";
 
@@ -12,7 +13,8 @@ export const metadata = { title: "Egészség-idővonal" };
 export default async function HealthTimelinePage() {
   const pet = await requireCurrentPet();
   const supabase = await createClient();
-  const [{ data: events }, { data: vaccines }, { data: weights }, { data: labs }, { data: docs }, { data: conditions }] =
+  const today = todayIso();
+  const [{ data: events }, { data: vaccines }, { data: weights }, { data: labs }, { data: docs }, { data: conditions }, { data: meds }] =
     await Promise.all([
       supabase.from("medical_events").select("id, event_date, kind, title, description").eq("pet_id", pet.id),
       supabase.from("vaccinations").select("id, vaccinated_on, vaccine, product_name, valid_until").eq("pet_id", pet.id),
@@ -20,6 +22,7 @@ export default async function HealthTimelinePage() {
       supabase.from("lab_results").select("measured_on, value, ref_low, ref_high").eq("pet_id", pet.id),
       supabase.from("documents").select("id, document_date, title, doc_type").eq("pet_id", pet.id),
       supabase.from("conditions").select("id, diagnosed_on, name, active").eq("pet_id", pet.id).not("diagnosed_on", "is", null),
+      supabase.from("medications").select("*, medication_periods(*)").eq("pet_id", pet.id),
     ]);
 
   const entries: TimelineEntry[] = [];
@@ -74,6 +77,40 @@ export default async function HealthTimelinePage() {
   }
   for (const doc of docs ?? []) {
     entries.push({ key: `d-${doc.id}`, date: doc.document_date, kind: "document", title: doc.title, detail: docTypeLabel(doc.doc_type), href: "/egeszseg/dokumentumok" });
+  }
+  // Gyógyszerek: a kúrák kezdete és vége, egyszerinél az alkalmak.
+  for (const m of meds ?? []) {
+    const href = `/gyogyszerek/${m.id}`;
+    for (const p of m.medication_periods) {
+      const dosage = p.dosage ?? m.dosage;
+      if (m.schedule_type === "once") {
+        if (p.start_date <= today) {
+          entries.push({ key: `m-${p.id}`, date: p.start_date, kind: "medication", title: m.name, detail: dosage, href });
+        }
+        continue;
+      }
+      if (p.start_date <= today) {
+        entries.push({
+          key: `ms-${p.id}`,
+          date: p.start_date,
+          kind: "medication",
+          title: `${m.name} – ${m.schedule_type === "course" ? "kúra indult" : "elkezdte szedni"}`,
+          detail: [dosage, describeRhythm(p)].filter(Boolean).join(" · "),
+          href,
+        });
+      }
+      if (p.end_date && p.end_date < today) {
+        const reason = stopReasonLabel(p.stop_reason);
+        entries.push({
+          key: `me-${p.id}`,
+          date: p.end_date,
+          kind: "medication",
+          title: `${m.name} – ${reason && p.stop_reason !== "kura_vege" ? "abbahagyva" : m.schedule_type === "course" ? "kúra vége" : "abbahagyva"}`,
+          detail: reason,
+          href,
+        });
+      }
+    }
   }
   for (const c of conditions ?? []) {
     entries.push({

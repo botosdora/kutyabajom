@@ -32,8 +32,12 @@ amit lehet, csináld meg helyette (adatbázis, deploy, tesztelés).
 - Regisztráció csak érvényes meghívókóddal (`handle_new_user` trigger ellenőrzi).
 - Időzóna: minden „nap” és időpont Europe/Budapest szerint (`src/lib/format.ts`
   segédfüggvényei, SQL-ben `at time zone 'Europe/Budapest'`).
-- Gyógyszeradagokat nem tárolunk előre: a `scheduled_doses()` SQL függvény számolja,
-  a rögzített beadás a `dose_logs`-ban van.
+- Gyógyszeradagokat nem tárolunk előre: a `scheduled_doses()` SQL függvény számolja
+  a `medication_periods` időszakaiból (kúrák; egyszeri alkalom = egynapos időszak),
+  a rögzített beadás a `dose_logs`-ban van. Abbahagyáskor az időszak lezárul (nem törlődik),
+  így a napló előzménye megmarad.
+- Szerkesztés: a fejlécben ceruza ikon (`SheetLauncher`), az űrlap felugró panelben;
+  új elem hozzáadása (`AddPanel`) szintén panelben nyílik.
 - Diagramszínek: a validált kategóriás paletta (`--series-1..8` a `globals.css`-ben),
   rögzített sorrendben. Státuszszínek (`success`, `warning`, `danger`) csak állapotra.
 - Felhasználói szövegek természetes magyarsággal; dátum `formatDate`, pénz `formatHuf`.
