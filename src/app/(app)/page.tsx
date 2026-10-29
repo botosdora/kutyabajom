@@ -22,6 +22,7 @@ import {
   todayIso,
 } from "@/lib/format";
 import { getDayItems } from "@/lib/day-items";
+import { isCurrent } from "@/lib/medications";
 import { getWeights } from "@/lib/health";
 import { requireCurrentPet } from "@/lib/pets";
 import { createClient } from "@/lib/supabase/server";
@@ -65,7 +66,7 @@ export default async function DashboardPage() {
     getWeights(pet.id),
     supabase
       .from("medications")
-      .select("id, name, reorder_on")
+      .select("*, medication_periods(*)")
       .eq("pet_id", pet.id)
       .eq("active", true)
       .lte("reorder_on", addDays(today, 7))
@@ -117,7 +118,7 @@ export default async function DashboardPage() {
   const doneCount = items.filter((i) => i.status !== null).length;
 
   const reminders: Reminder[] = [
-    ...(reorders ?? []).map((m) => ({
+    ...(reorders ?? []).filter((m) => isCurrent(m, m.medication_periods, today)).map((m) => ({
       key: `r-${m.id}`,
       href: `/gyogyszerek/${m.id}`,
       icon: "reorder" as const,

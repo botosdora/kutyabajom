@@ -217,3 +217,26 @@ export function GroupCard({
     </section>
   );
 }
+
+// Fülek (pl. Aktív / Korábbi) linkként, darabszámmal.
+export function Tabs({ items }: { items: { href: string; label: string; count?: number; active: boolean }[] }) {
+  return (
+    <nav className="mb-4 grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-surface-muted p-1" aria-label="Nézet">
+      {items.map((t) => (
+        <Link
+          key={t.href}
+          href={t.href}
+          replace
+          scroll={false}
+          aria-current={t.active ? "page" : undefined}
+          className={`flex h-10 items-center justify-center gap-1.5 rounded-lg text-sm font-semibold ${
+            t.active ? "bg-surface text-link shadow-sm" : "text-text-muted hover:text-text"
+          }`}
+        >
+          {t.label}
+          {t.count !== undefined && <span className={t.active ? "text-text-muted" : ""}>{t.count}</span>}
+        </Link>
+      ))}
+    </nav>
+  );
+}

@@ -718,6 +718,63 @@ export type Database = {
           },
         ]
       }
+      medication_periods: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dosage: string | null
+          end_date: string | null
+          id: string
+          interval_days: number
+          medication_id: string
+          pet_id: string
+          start_date: string
+          stop_reason: string | null
+          times: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dosage?: string | null
+          end_date?: string | null
+          id?: string
+          interval_days?: number
+          medication_id: string
+          pet_id: string
+          start_date: string
+          stop_reason?: string | null
+          times?: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dosage?: string | null
+          end_date?: string | null
+          id?: string
+          interval_days?: number
+          medication_id?: string
+          pet_id?: string
+          start_date?: string
+          stop_reason?: string | null
+          times?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_periods_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_periods_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medication_purchases: {
         Row: {
           cost_huf: number | null
@@ -776,17 +833,12 @@ export type Database = {
           created_at: string
           created_by: string | null
           dosage: string | null
-          end_date: string | null
           id: string
-          interval_days: number | null
           name: string
           notes: string | null
-          once_dates: string[]
           pet_id: string
           reorder_on: string | null
           schedule_type: string
-          start_date: string
-          times: string[]
         }
         Insert: {
           active?: boolean
@@ -794,17 +846,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dosage?: string | null
-          end_date?: string | null
           id?: string
-          interval_days?: number | null
           name: string
           notes?: string | null
-          once_dates?: string[]
           pet_id: string
           reorder_on?: string | null
           schedule_type?: string
-          start_date: string
-          times?: string[]
         }
         Update: {
           active?: boolean
@@ -812,17 +859,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           dosage?: string | null
-          end_date?: string | null
           id?: string
-          interval_days?: number | null
           name?: string
           notes?: string | null
-          once_dates?: string[]
           pet_id?: string
           reorder_on?: string | null
           schedule_type?: string
-          start_date?: string
-          times?: string[]
         }
         Relationships: [
           {

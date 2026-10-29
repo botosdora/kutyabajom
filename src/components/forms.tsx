@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { Trash2 } from "lucide-react";
 import { Alert, buttonClass, type ButtonVariant } from "@/components/ui";
 import { useToast } from "@/components/toast";
+import { SheetLauncher, useSheetClose } from "@/components/sheet";
 
 export type ActionResult = { error?: string; message?: string } | null;
 export type FormAction = (prev: ActionResult, formData: FormData) => Promise<ActionResult>;
@@ -46,14 +47,17 @@ export function ActionForm({
   const [state, formAction] = useActionState(action, null);
   const handled = useRef<ActionResult>(null);
   const toast = useToast();
+  // Panelben lévő űrlap sikeres mentés után bezárja a panelt.
+  const closeSheet = useSheetClose();
 
   useEffect(() => {
     if (state && !state.error && handled.current !== state) {
       handled.current = state;
       if (state.message && !persistentMessage) toast(state.message);
       onSuccess?.();
+      closeSheet?.();
     }
-  }, [state, onSuccess, toast, persistentMessage]);
+  }, [state, onSuccess, toast, persistentMessage, closeSheet]);
 
   return (
     <form action={formAction} className={className}>
@@ -64,7 +68,7 @@ export function ActionForm({
   );
 }
 
-// Lenyitható "Új hozzáadása" panel egy űrlappal.
+// "+ Új hozzáadása" gomb; az űrlap alulról felcsúszó panelben nyílik.
 export function AddPanel({
   label,
   action,
@@ -76,26 +80,13 @@ export function AddPanel({
   children: ReactNode;
   defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className={buttonClass("secondary", "w-full")}>
-        + {label}
-      </button>
-    );
-  }
   return (
-    <div className="rounded-2xl border border-border bg-surface-muted p-4">
-      <ActionForm action={action} onSuccess={() => setOpen(false)}>
+    <SheetLauncher title={label} label={`+ ${label}`} className="w-full" defaultOpen={defaultOpen}>
+      <ActionForm action={action}>
         {children}
-        <div className="flex gap-2">
-          <SubmitButton className="flex-1">Mentés</SubmitButton>
-          <button type="button" onClick={() => setOpen(false)} className={buttonClass("ghost")}>
-            Mégse
-          </button>
-        </div>
+        <SubmitButton>Mentés</SubmitButton>
       </ActionForm>
-    </div>
+    </SheetLauncher>
   );
 }
 

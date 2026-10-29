@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatAge, formatDate, formatWeight, todayIso } from "@/lib/format";
 import { eventKindLabel } from "@/lib/health";
 import { average, observationLabel, OBSERVATIONS, rateScale, SCALES, STOOL_OPTIONS, stoolLabel } from "@/lib/journal";
-import { categoryLabel, describeSchedule, MED_CATEGORIES } from "@/lib/medications";
+import { categoryLabel, currentDosage, describeSchedule, isCurrent, MED_CATEGORIES, type MedicationWithPeriods } from "@/lib/medications";
 import type { Tables } from "@/lib/database.types";
 import { formatLabValue, formatRange, labStatus } from "@/lib/labs";
 import { colors, Empty, PdfDoc, s, Section, Table } from "./base";
@@ -13,7 +13,7 @@ import { PdfTrendChart } from "./trend-chart";
 
 type Pet = Tables<"pets">;
 
-function MedicationTables({ meds }: { meds: Tables<"medications">[] }) {
+function MedicationTables({ meds, today }: { meds: MedicationWithPeriods[]; today: string }) {
   if (meds.length === 0) return <Empty>Nincs rögzített gyógyszer.</Empty>;
   return (
     <>
@@ -29,7 +29,7 @@ function MedicationTables({ meds }: { meds: Tables<"medications">[] }) {
                 { label: "Ütemezés", width: "35%" },
                 { label: "Megjegyzés", width: "20%" },
               ]}
-              rows={list.map((m) => [m.name, m.dosage, describeSchedule(m), m.notes])}
+              rows={list.map((m) => [m.name, currentDosage(m, m.medication_periods, today), describeSchedule(m, m.medication_periods, today), m.notes])}
             />
           </Section>
         );
@@ -40,10 +40,12 @@ function MedicationTables({ meds }: { meds: Tables<"medications">[] }) {
 
 export async function medicationsPdf(pet: Pet) {
   const supabase = await createClient();
-  const { data } = await supabase.from("medications").select("*").eq("pet_id", pet.id).eq("active", true).order("name");
+  const today = todayIso();
+  const { data } = await supabase.from("medications").select("*, medication_periods(*)").eq("pet_id", pet.id).order("name");
+  const meds = (data ?? []).filter((m) => isCurrent(m, m.medication_periods, today));
   return renderToBuffer(
     <PdfDoc title="Gyógyszerek és kiegészítők" subtitle={`${pet.name} · jelenleg szedett szerek`}>
-      <MedicationTables meds={data ?? []} />
+      <MedicationTables meds={meds} today={today} />
     </PdfDoc>,
   );
 }
@@ -54,7 +56,7 @@ export async function healthPdf(pet: Pet) {
     supabase.from("weights").select("*").eq("pet_id", pet.id).order("measured_on", { ascending: false }).limit(12),
     supabase.from("allergies").select("*").eq("pet_id", pet.id).order("name"),
     supabase.from("conditions").select("*").eq("pet_id", pet.id).order("active", { ascending: false }).order("name"),
-    supabase.from("medications").select("*").eq("pet_id", pet.id).eq("active", true).order("name"),
+    supabase.from("medications").select("*, medication_periods(*)").eq("pet_id", pet.id).order("name"),
     supabase.from("vaccinations").select("*, vets(name)").eq("pet_id", pet.id).order("vaccinated_on", { ascending: false }),
     supabase.from("medical_events").select("*, vets(name)").eq("pet_id", pet.id).order("event_date", { ascending: false }),
     supabase.from("vets").select("*").eq("pet_id", pet.id).order("name"),
@@ -64,6 +66,8 @@ export async function healthPdf(pet: Pet) {
   const firstLab = new Map<string, Tables<"lab_results">>();
   for (const r of labs.data ?? []) if (!firstLab.has(r.parameter)) firstLab.set(r.parameter, r);
   const latest = weights.data?.[0];
+  const today = todayIso();
+  const currentMeds = (meds.data ?? []).filter((m) => isCurrent(m, m.medication_periods, today));
   const facts = [
     ["Fajta", pet.breed],
     ["Születés", pet.birth_date ? `${formatDate(pet.birth_date)} (${formatAge(pet.birth_date) ?? ""})` : null],
@@ -114,7 +118,7 @@ export async function healthPdf(pet: Pet) {
       </Section>
 
       <Section title="Jelenlegi gyógyszerek és kiegészítők">
-        {meds.data?.length ? (
+        {currentMeds.length ? (
           <Table
             columns={[
               { label: "Név", width: "30%" },
@@ -122,7 +126,7 @@ export async function healthPdf(pet: Pet) {
               { label: "Adag", width: "18%" },
               { label: "Ütemezés", width: "36%" },
             ]}
-            rows={meds.data.map((m) => [m.name, categoryLabel(m.category), m.dosage, describeSchedule(m)])}
+            rows={currentMeds.map((m) => [m.name, categoryLabel(m.category), currentDosage(m, m.medication_periods, today), describeSchedule(m, m.medication_periods, today)])}
           />
         ) : (
           <Empty>Nincs.</Empty>

@@ -1,8 +1,61 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { Pencil, X } from "lucide-react";
+import { buttonClass, type ButtonVariant } from "@/components/ui";
+
+// A panelben lévő űrlap ezzel zárja be a panelt sikeres mentés után.
+const SheetCloseContext = createContext<(() => void) | null>(null);
+export function useSheetClose() {
+  return useContext(SheetCloseContext);
+}
+
+// Gomb, ami panelben nyit meg egy űrlapot. Felirat nélkül ceruza ikon (szerkesztés).
+export function SheetLauncher({
+  title,
+  label,
+  icon,
+  variant = "secondary",
+  className = "",
+  defaultOpen = false,
+  children,
+}: {
+  title: ReactNode;
+  label?: string;
+  icon?: ReactNode;
+  variant?: ButtonVariant;
+  className?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const close = () => setOpen(false);
+  return (
+    <>
+      {label ? (
+        <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" className={buttonClass(variant, className)}>
+          {icon}
+          {label}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
+          aria-label={typeof title === "string" ? title : "Szerkesztés"}
+          title={typeof title === "string" ? title : "Szerkesztés"}
+          className={`flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-text-muted hover:bg-border hover:text-text ${className}`}
+        >
+          {icon ?? <Pencil size={18} aria-hidden="true" />}
+        </button>
+      )}
+      <Sheet open={open} onClose={close} title={title}>
+        <SheetCloseContext value={close}>{children}</SheetCloseContext>
+      </Sheet>
+    </>
+  );
+}
 
 // Alulról felcsúszó panel (mint az iPhone saját appjaiban). Bezárás: háttérre
 // koppintás, X gomb, Esc, vagy a fogantyú lehúzása.
