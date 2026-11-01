@@ -9,7 +9,6 @@ import { addDays, formatDate, todayIso } from "@/lib/format";
 import { requireCurrentPet } from "@/lib/pets";
 import { saveLog } from "./actions";
 import { TodayList } from "@/components/today-list";
-import { WalkControls } from "@/components/walk-controls";
 import { getDayItems, getDoseSummaries, getWalkSummaries } from "@/lib/day-items";
 
 export const metadata = { title: "Napló" };
@@ -87,7 +86,6 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
           {day === today ? "Itt is kipipálhatod a mai teendőket." : "Utólag is rögzítheted: mi ment be, mi maradt ki."}
         </p>
         <TodayList items={dayItems.items} petId={pet.id} day={day} isToday={day === today} />
-        <WalkControls petId={pet.id} day={day} walkTimes={pet.walk_times} isToday={day === today} />
       </section>
 
       <SectionTitle icon={NotebookPen}>Megfigyelések</SectionTitle>

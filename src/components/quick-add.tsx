@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarPlus, ClipboardList, FileUp, NotebookPen, Pill, Plus, Scale, Wallet } from "lucide-react";
+import { CalendarPlus, ClipboardList, FileUp, NotebookPen, PawPrint, Pill, Plus, Scale, Wallet } from "lucide-react";
 import { ActionForm, SubmitButton, type FormAction } from "@/components/forms";
 import { Sheet } from "@/components/sheet";
+import { ExtraWalkForm } from "@/components/walk-controls";
 import { buttonClass, Field } from "@/components/ui";
 
 const LINKS = [
@@ -17,8 +18,8 @@ const LINKS = [
 ];
 
 // Egyetlen "+ Hozzáadás" gomb a teendők alatt; alulról felcsúszó panelben választható, mit rögzítünk.
-export function QuickAdd({ action, petId }: { action: FormAction; petId: string }) {
-  const [mode, setMode] = useState<"closed" | "menu" | "task">("closed");
+export function QuickAdd({ action, petId, day }: { action: FormAction; petId: string; day: string }) {
+  const [mode, setMode] = useState<"closed" | "menu" | "task" | "walk">("closed");
 
   const close = () => setMode("closed");
 
@@ -27,7 +28,7 @@ export function QuickAdd({ action, petId }: { action: FormAction; petId: string 
       <button type="button" onClick={() => setMode("menu")} aria-haspopup="dialog" className={buttonClass("secondary", "w-full")}>
         <Plus size={18} aria-hidden="true" /> Hozzáadás
       </button>
-      <Sheet open={mode !== "closed"} onClose={close} title={mode === "task" ? "Saját teendő mára" : "Mit szeretnél hozzáadni?"}>
+      <Sheet open={mode !== "closed"} onClose={close} title={mode === "task" ? "Saját teendő mára" : mode === "walk" ? "Extra séta" : "Mit szeretnél hozzáadni?"}>
         {mode === "menu" ? (
           <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
             <button
@@ -39,6 +40,16 @@ export function QuickAdd({ action, petId }: { action: FormAction; petId: string 
                 <ClipboardList size={22} aria-hidden="true" />
               </span>
               Saját teendő
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("walk")}
+              className="flex flex-col items-center gap-1.5 rounded-xl bg-surface-muted px-1 py-3 text-center text-[11px] font-semibold leading-tight hover:bg-primary-soft sm:text-xs"
+            >
+              <span className="flex size-11 items-center justify-center rounded-xl bg-primary-soft text-link">
+                <PawPrint size={22} aria-hidden="true" />
+              </span>
+              Extra séta
             </button>
             {LINKS.map(({ href, label, icon: Icon }) => (
               <Link
@@ -54,6 +65,15 @@ export function QuickAdd({ action, petId }: { action: FormAction; petId: string 
               </Link>
             ))}
           </div>
+        ) : mode === "walk" ? (
+          <ExtraWalkForm petId={petId} day={day} onSuccess={close}>
+            <div className="flex gap-2">
+              <SubmitButton className="flex-1">Mentés</SubmitButton>
+              <button type="button" onClick={() => setMode("menu")} className={buttonClass("ghost")}>
+                Vissza
+              </button>
+            </div>
+          </ExtraWalkForm>
         ) : (
           <ActionForm action={action} onSuccess={close}>
             <input type="hidden" name="pet_id" value={petId} />

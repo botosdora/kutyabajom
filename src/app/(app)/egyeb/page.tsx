@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Bell, ChevronRight, Dog, Download, HardDrive, LayoutGrid, ShieldCheck, Palette, Pill, UserRound, Utensils, Wallet } from "lucide-react";
+import { Bell, ChevronRight, Dog, PawPrint, Download, HardDrive, LayoutGrid, ShieldCheck, Palette, Pill, UserRound, Utensils, Wallet } from "lucide-react";
 import { ActionForm, SubmitButton } from "@/components/forms";
 import { PetAvatar } from "@/components/pet-switcher";
 import { buttonClass, Card, Field, PageHeader, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { getPets, petPhotoUrl, requireUser } from "@/lib/pets";
+import { getCurrentPet, getPets, petPhotoUrl, requireUser } from "@/lib/pets";
+import { WalkTimesForm } from "@/components/walk-controls";
 import { ACCENT_COOKIE, ACCENTS, parseAccent, parseTheme, THEME_COOKIE, THEMES } from "@/lib/appearance";
 import { cookies } from "next/headers";
 import { setAppearance, updateNotificationSettings, updateProfile } from "../actions";
@@ -25,9 +26,10 @@ export default async function MorePage() {
   const store = await cookies();
   const theme = parseTheme(store.get(THEME_COOKIE)?.value);
   const accent = parseAccent(store.get(ACCENT_COOKIE)?.value);
-  const [{ data: profile }, pets] = await Promise.all([
+  const [{ data: profile }, pets, pet] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     getPets(),
+    getCurrentPet(),
   ]);
 
   return (
@@ -63,6 +65,15 @@ export default async function MorePage() {
           A kiválasztott kutya adatai és gazdái →
         </Link>
       </section>
+
+      {pet && (
+        <section className="mb-6">
+          <SectionTitle icon={PawPrint}>Séták – {pet.name}</SectionTitle>
+          <Card>
+            <WalkTimesForm key={pet.id} petId={pet.id} walkTimes={pet.walk_times} />
+          </Card>
+        </section>
+      )}
 
       <section className="mb-6">
         <SectionTitle icon={Palette}>Megjelenés</SectionTitle>

@@ -10,7 +10,6 @@ import { QuickAdd } from "@/components/quick-add";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { addQuickTask } from "./naptar/actions";
 import { TodayList } from "@/components/today-list";
-import { WalkControls } from "@/components/walk-controls";
 import { WeightChart } from "@/components/weight-chart";
 import { weightSeries } from "@/lib/charts";
 import {
@@ -247,9 +246,8 @@ export default async function DashboardPage() {
             </div>
           )}
           <TodayList items={dayList} petId={pet.id} day={today} isToday />
-          <WalkControls petId={pet.id} day={today} walkTimes={pet.walk_times} isToday />
           <div className="mt-1">
-            <QuickAdd action={addQuickTask} petId={pet.id} />
+            <QuickAdd action={addQuickTask} petId={pet.id} day={today} />
           </div>
           <Link href="/gyogyszerek" className="mt-2 inline-block text-sm font-medium text-link">
             Gyógyszerek kezelése →
