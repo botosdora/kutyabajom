@@ -36,6 +36,8 @@ amit lehet, csináld meg helyette (adatbázis, deploy, tesztelés).
   a `medication_periods` időszakaiból (kúrák; egyszeri alkalom = egynapos időszak),
   a rögzített beadás a `dose_logs`-ban van. Abbahagyáskor az időszak lezárul (nem törlődik),
   így a napló előzménye megmarad.
+- Séták: `pets.walk_times` (napi időpontok) + `walk_logs` (sor = megvolt a séta, pisi/kaki).
+  A teendők idővonalán látszanak, de **nem számítanak bele** a napi teendőszámlálóba.
 - Szerkesztés: a fejlécben ceruza ikon (`SheetLauncher`), az űrlap felugró panelben;
   új elem hozzáadása (`AddPanel`) szintén panelben nyílik.
 - Diagramszínek: a validált kategóriás paletta (`--series-1..8` a `globals.css`-ben),

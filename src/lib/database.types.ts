@@ -959,6 +959,7 @@ export type Database = {
           notes: string | null
           photo_path: string | null
           sex: string | null
+          walk_times: string[]
         }
         Insert: {
           adoption_date?: string | null
@@ -974,6 +975,7 @@ export type Database = {
           notes?: string | null
           photo_path?: string | null
           sex?: string | null
+          walk_times?: string[]
         }
         Update: {
           adoption_date?: string | null
@@ -989,6 +991,7 @@ export type Database = {
           notes?: string | null
           photo_path?: string | null
           sex?: string | null
+          walk_times?: string[]
         }
         Relationships: []
       }
@@ -1187,6 +1190,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "vets_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      walk_logs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          day: string
+          id: string
+          pee: boolean
+          pet_id: string
+          poop: boolean
+          scheduled: boolean
+          time: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          day: string
+          id?: string
+          pee?: boolean
+          pet_id: string
+          poop?: boolean
+          scheduled?: boolean
+          time: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          day?: string
+          id?: string
+          pee?: boolean
+          pet_id?: string
+          poop?: boolean
+          scheduled?: boolean
+          time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "walk_logs_pet_id_fkey"
             columns: ["pet_id"]
             isOneToOne: false
             referencedRelation: "pets"

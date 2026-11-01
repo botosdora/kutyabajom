@@ -24,6 +24,7 @@ const PET_TABLES = [
   "documents",
   "expenses",
   "daily_logs",
+  "walk_logs",
   "foods",
   "food_purchases",
   "lab_results",

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ChevronRight, Pill } from "lucide-react";
-import type { DoseSummary } from "@/lib/day-items";
+import { ChevronRight, PawPrint, Pill } from "lucide-react";
+import { describeWalks, type DoseSummary, type WalkSummary } from "@/lib/day-items";
 import { SCALE_ICONS } from "@/components/scale-icons";
 import { observationLabel, rateScale, SCALES, stoolLabel, TONE_STYLE } from "@/lib/journal";
 import type { Tables } from "@/lib/database.types";
@@ -9,7 +9,7 @@ const weekday = new Intl.DateTimeFormat("hu-HU", { weekday: "long", timeZone: "U
 const monthDay = new Intl.DateTimeFormat("hu-HU", { month: "long", day: "numeric", timeZone: "UTC" });
 
 // Egy naplóbejegyzés áttekinthető kártyán: értékek csempékben, megfigyelések címkékben.
-export function LogEntryCard({ log, doses }: { log: Tables<"daily_logs">; doses?: DoseSummary }) {
+export function LogEntryCard({ log, doses, walks }: { log: Tables<"daily_logs">; doses?: DoseSummary; walks?: WalkSummary }) {
   const date = new Date(`${log.day}T12:00:00Z`);
   const tags = [stoolLabel(log.stool) && `Széklet: ${stoolLabel(log.stool)}`, ...log.observations.map(observationLabel)].filter(
     Boolean,
@@ -78,6 +78,13 @@ export function LogEntryCard({ log, doses }: { log: Tables<"daily_logs">; doses?
               </span>
               {doses.missed.length > 0 && <span className="text-text-muted"> · nincs rögzítve vagy kimaradt: {doses.missed.join(", ")}</span>}
             </span>
+          </p>
+        )}
+
+        {walks && (
+          <p className="mt-2 flex items-center gap-2 text-sm">
+            <PawPrint size={16} className="shrink-0 text-link" aria-hidden="true" />
+            {describeWalks(walks)}
           </p>
         )}
 

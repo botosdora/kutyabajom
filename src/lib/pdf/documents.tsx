@@ -8,7 +8,7 @@ import { categoryLabel, currentDosage, describeSchedule, isCurrent, MED_CATEGORI
 import type { Tables } from "@/lib/database.types";
 import { formatLabValue, formatRange, labStatus } from "@/lib/labs";
 import { colors, Empty, PdfDoc, s, Section, Table } from "./base";
-import { getDoseSummaries, type DoseSummary } from "@/lib/day-items";
+import { describeWalks, getDoseSummaries, getWalkSummaries, type DoseSummary, type WalkSummary } from "@/lib/day-items";
 import { PdfTrendChart } from "./trend-chart";
 
 type Pet = Tables<"pets">;
@@ -227,7 +227,17 @@ export async function healthPdf(pet: Pet) {
 
 const DOSE_STATUS_PDF: Record<string, string> = { given: "beadva", missed: "kimaradt", refused: "elutasította" };
 
-function JournalDay({ log, day, doses }: { log: Tables<"daily_logs"> | null; day: string; doses: DoseSummary | undefined }) {
+function JournalDay({
+  log,
+  day,
+  doses,
+  walks,
+}: {
+  log: Tables<"daily_logs"> | null;
+  day: string;
+  doses: DoseSummary | undefined;
+  walks: WalkSummary | undefined;
+}) {
   const scales = log ? SCALES.filter((sc) => log[sc.key] !== null) : [];
   const tags = log ? [stoolLabel(log.stool) && `Széklet: ${stoolLabel(log.stool)}`, ...log.observations.map(observationLabel)].filter(Boolean) : [];
   return (
@@ -258,6 +268,7 @@ function JournalDay({ log, day, doses }: { log: Tables<"daily_logs"> | null; day
         </Text>
       )}
       {tags.length > 0 && <Text style={j.line}>{tags.join(" · ")}</Text>}
+      {walks && <Text style={j.line}>Séták: {describeWalks(walks)}</Text>}
       {doses && doses.doses.length > 0 && (
         <View style={j.doses}>
           {doses.doses.map((d, i) => (
@@ -310,13 +321,17 @@ export async function journalPdf(pet: Pet, from: string, to: string) {
     .lte("day", to)
     .order("day");
   const logs = data ?? [];
-  const doseSummaries = await getDoseSummaries(pet.id, from, to);
+  const [doseSummaries, walkSummaries] = await Promise.all([getDoseSummaries(pet.id, from, to), getWalkSummaries(pet.id, from, to)]);
   const count = (pred: (l: Tables<"daily_logs">) => boolean) => logs.filter(pred).length;
 
-  // Minden nap, amelyre van naplóbejegyzés vagy legalább egy rögzített adag.
+  // Minden nap, amelyre van naplóbejegyzés, rögzített adag vagy séta.
   const logByDay = new Map(logs.map((l) => [l.day, l]));
   const days = [
-    ...new Set([...logByDay.keys(), ...[...doseSummaries].filter(([, d]) => d.doses.some((x) => x.status)).map(([day]) => day)]),
+    ...new Set([
+      ...logByDay.keys(),
+      ...[...doseSummaries].filter(([, d]) => d.doses.some((x) => x.status)).map(([day]) => day),
+      ...walkSummaries.keys(),
+    ]),
   ].sort();
 
   return renderToBuffer(
@@ -352,7 +367,7 @@ export async function journalPdf(pet: Pet, from: string, to: string) {
           )}
           <Section title="Napi bejegyzések">
             {days.map((day) => (
-              <JournalDay key={day} day={day} log={logByDay.get(day) ?? null} doses={doseSummaries.get(day)} />
+              <JournalDay key={day} day={day} log={logByDay.get(day) ?? null} doses={doseSummaries.get(day)} walks={walkSummaries.get(day)} />
             ))}
           </Section>
           {logs.length > 0 && (

@@ -9,7 +9,8 @@ import { addDays, formatDate, todayIso } from "@/lib/format";
 import { requireCurrentPet } from "@/lib/pets";
 import { saveLog } from "./actions";
 import { TodayList } from "@/components/today-list";
-import { getDayItems, getDoseSummaries } from "@/lib/day-items";
+import { WalkControls } from "@/components/walk-controls";
+import { getDayItems, getDoseSummaries, getWalkSummaries } from "@/lib/day-items";
 
 export const metadata = { title: "Napló" };
 
@@ -43,9 +44,12 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
       .gte("day", gridStart)
       .lte("day", today),
   ]);
-  const summaries = recent?.length
-    ? await getDoseSummaries(pet.id, recent[recent.length - 1].day, recent[0].day)
-    : new Map();
+  const [summaries, walkSummaries] = recent?.length
+    ? await Promise.all([
+        getDoseSummaries(pet.id, recent[recent.length - 1].day, recent[0].day),
+        getWalkSummaries(pet.id, recent[recent.length - 1].day, recent[0].day),
+      ])
+    : [new Map(), new Map()];
 
   return (
     <>
@@ -83,6 +87,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
           {day === today ? "Itt is kipipálhatod a mai teendőket." : "Utólag is rögzítheted: mi ment be, mi maradt ki."}
         </p>
         <TodayList items={dayItems.items} petId={pet.id} day={day} isToday={day === today} />
+        <WalkControls petId={pet.id} day={day} walkTimes={pet.walk_times} isToday={day === today} />
       </section>
 
       <SectionTitle icon={NotebookPen}>Megfigyelések</SectionTitle>
@@ -100,7 +105,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
         <>
           <ul className="flex flex-col gap-3">
             {recent.map((l) => (
-              <LogEntryCard key={l.id} log={l} doses={summaries.get(l.day)} />
+              <LogEntryCard key={l.id} log={l} doses={summaries.get(l.day)} walks={walkSummaries.get(l.day)} />
             ))}
           </ul>
           <LoadMore shown={recent.length} total={count ?? 0} href={(n) => `/naplo?nap=${day}&db=${n}`} />

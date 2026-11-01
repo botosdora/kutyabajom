@@ -10,6 +10,7 @@ import { QuickAdd } from "@/components/quick-add";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { addQuickTask } from "./naptar/actions";
 import { TodayList } from "@/components/today-list";
+import { WalkControls } from "@/components/walk-controls";
 import { WeightChart } from "@/components/weight-chart";
 import { weightSeries } from "@/lib/charts";
 import {
@@ -114,7 +115,9 @@ export default async function DashboardPage() {
   ]);
   const loggedToday = (recentLogs ?? []).some((l) => l.day === today);
 
-  const { items, vetEvents: vetToday } = dayItems;
+  const { items: dayList, vetEvents: vetToday } = dayItems;
+  // A séták a teendők között látszanak, de nem számítanak bele a napi haladásba.
+  const items = dayList.filter((i) => i.kind !== "walk");
   const doneCount = items.filter((i) => i.status !== null).length;
 
   const reminders: Reminder[] = [
@@ -243,7 +246,8 @@ export default async function DashboardPage() {
               <span className="text-sm font-semibold">Minden kész mára! Ügyesek vagytok.</span>
             </div>
           )}
-          <TodayList items={items} petId={pet.id} day={today} isToday />
+          <TodayList items={dayList} petId={pet.id} day={today} isToday />
+          <WalkControls petId={pet.id} day={today} walkTimes={pet.walk_times} isToday />
           <div className="mt-1">
             <QuickAdd action={addQuickTask} petId={pet.id} />
           </div>

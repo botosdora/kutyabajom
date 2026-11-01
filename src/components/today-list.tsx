@@ -2,8 +2,8 @@
 
 import { useEffect, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
-import { Ban, Check, CircleDashed, ClipboardList, Clock, ExternalLink, MoreHorizontal, Pill, Undo2, Utensils, X } from "lucide-react";
-import { logDose, logMeal, undoDose, undoMeal } from "@/app/(app)/today-actions";
+import { Ban, Check, CircleDashed, ClipboardList, Clock, ExternalLink, MoreHorizontal, PawPrint, Pill, Undo2, Utensils, X } from "lucide-react";
+import { logDose, logMeal, logWalk, undoDose, undoMeal, undoWalk } from "@/app/(app)/today-actions";
 import { setTaskStatus } from "@/app/(app)/naptar/actions";
 import { Sheet } from "@/components/sheet";
 
@@ -41,6 +41,19 @@ export type TodayItem =
       logId: string | null;
       status: "eaten" | "partial" | "refused" | null;
       doneAt: string | null;
+    }
+  | {
+      kind: "walk";
+      key: string;
+      time: string;
+      title: string;
+      detail: null;
+      slotTime: string;
+      logId: string | null;
+      status: "done" | null;
+      pee: boolean;
+      poop: boolean;
+      doneAt: null;
     };
 
 const STATUS_TEXT: Record<string, string> = {
@@ -57,7 +70,17 @@ function isDone(status: TodayItem["status"]) {
   return status === "given" || status === "eaten" || status === "partial" || status === "done";
 }
 
-function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petId: string; day: string; hideTime?: boolean }) {
+function TaskRow({
+  item,
+  petId,
+  day,
+  hideTime = false,
+}: {
+  item: Exclude<TodayItem, { kind: "walk" }>;
+  petId: string;
+  day: string;
+  hideTime?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [showTime, setShowTime] = useState(false);
   const [time, setTime] = useState(item.time);
@@ -249,6 +272,111 @@ function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petI
   );
 }
 
+// Séta: a pipa jelzi, hogy megvolt; a Pisi és Kaki gomb egy koppintással
+// kapcsolható (és ha a séta még nincs rögzítve, egyben rögzíti is).
+function WalkRow({ item, petId, day }: { item: Extract<TodayItem, { kind: "walk" }>; petId: string; day: string }) {
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [state, setState] = useOptimistic({ logged: item.logId !== null, pee: item.pee, poop: item.poop });
+  const [popped, setPopped] = useState(false);
+
+  const save = (next: typeof state, fn: () => Promise<void>) => {
+    setOpen(false);
+    startTransition(async () => {
+      setState(next);
+      await fn();
+    });
+  };
+  const markDone = () => {
+    setPopped(true);
+    save({ ...state, logged: true }, () => logWalk(petId, day, item.slotTime, item.logId));
+  };
+  const toggle = (flag: "pee" | "poop") => {
+    if (!state.logged) setPopped(true);
+    const value = !state[flag];
+    save({ ...state, logged: true, [flag]: value }, () => logWalk(petId, day, item.slotTime, item.logId, { [flag]: value }));
+  };
+  const undo = () => save({ logged: false, pee: false, poop: false }, () => undoWalk(item.logId!));
+
+  const chip = (flag: "pee" | "poop", label: string) => (
+    <button
+      type="button"
+      onClick={() => toggle(flag)}
+      aria-pressed={state[flag]}
+      className={`flex h-8 items-center gap-1 rounded-full px-3 text-xs font-semibold transition-colors ${
+        state[flag] ? "bg-primary-soft text-link" : "border border-border-strong text-text-muted hover:bg-surface-muted"
+      }`}
+    >
+      {state[flag] && <Check size={13} strokeWidth={3} aria-hidden="true" />}
+      {label}
+    </button>
+  );
+
+  return (
+    <li className={`border-b border-border last:border-b-0 ${pending ? "opacity-80" : ""}`}>
+      <div className="flex min-h-14 items-center gap-3 py-1.5">
+        <button
+          type="button"
+          onClick={() => (state.logged ? setOpen(true) : markDone())}
+          aria-label={state.logged ? `${item.title}: megvolt. Módosítás` : `${item.title} megvolt`}
+          className="flex size-11 shrink-0 items-center justify-center"
+        >
+          <span
+            className={`flex size-6 items-center justify-center rounded-md transition-colors ${
+              state.logged ? "bg-primary text-on-primary" : "border-[1.5px] border-text-muted/60"
+            } ${popped && state.logged ? "animate-pop" : ""}`}
+          >
+            {state.logged && <Check size={15} strokeWidth={3} aria-hidden="true" />}
+          </span>
+        </button>
+        <div className="min-w-0 flex-1 py-1">
+          <p className={`truncate text-[15px] font-semibold ${state.logged ? "text-text-muted" : ""}`}>
+            <PawPrint size={14} className="mr-1.5 inline -translate-y-px text-text-muted" aria-hidden="true" />
+            {item.title}
+            {state.logged && <span className="ml-1.5 text-xs font-medium text-success">Megvolt</span>}
+          </p>
+          <div className="mt-1 flex gap-1.5">
+            {chip("pee", "Pisi")}
+            {chip("poop", "Kaki")}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
+          aria-label="További lehetőségek"
+          className="mr-1 flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-text-muted hover:bg-border"
+        >
+          <MoreHorizontal size={20} aria-hidden="true" />
+        </button>
+      </div>
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={
+          <span className="flex items-center gap-2">
+            <PawPrint size={18} className="shrink-0 text-link" aria-hidden="true" />
+            {item.title}
+          </span>
+        }
+      >
+        <p className="-mt-1 mb-3 text-sm text-text-muted">{item.time}</p>
+        <div className="flex flex-col gap-2">
+          {state.logged ? (
+            <SheetButton onClick={undo} icon={Undo2}>
+              {item.title === "Séta" ? "Visszavonás" : "Séta törlése"}
+            </SheetButton>
+          ) : (
+            <SheetButton onClick={markDone} icon={Check} primary>
+              Megvolt
+            </SheetButton>
+          )}
+        </div>
+      </Sheet>
+    </li>
+  );
+}
+
 function SheetButton({
   onClick,
   icon: Icon,
@@ -322,8 +450,10 @@ export function TodayList({
     <ol className="relative">
       <span aria-hidden="true" className="absolute bottom-3 left-[63px] top-3 w-0.5 rounded-full bg-border" />
       {groups.map((g, i) => {
-        const allDone = g.items.every((it) => it.status !== null);
-        const past = now !== null && g.time !== "–" && g.time <= now;
+        // A séták nem kötelezők: ki nem pipálva sem jelölik pirossal az időpontot.
+        const required = g.items.filter((it) => it.kind !== "walk");
+        const allDone = (required.length ? required : g.items).every((it) => it.status !== null);
+        const past = now !== null && g.time !== "–" && g.time <= now && required.length > 0;
         return (
           <li key={`${g.time}-${i}`} className="relative">
             {i === nowIndex && <NowMarker time={now!} />}
@@ -345,9 +475,13 @@ export function TodayList({
                 />
               </div>
               <ul className="min-w-0 flex-1 rounded-2xl border border-border bg-surface px-1">
-                {g.items.map((item) => (
-                  <TaskRow key={item.key} item={item} petId={petId} day={day} hideTime />
-                ))}
+                {g.items.map((item) =>
+                  item.kind === "walk" ? (
+                    <WalkRow key={item.key} item={item} petId={petId} day={day} />
+                  ) : (
+                    <TaskRow key={item.key} item={item} petId={petId} day={day} hideTime />
+                  ),
+                )}
               </ul>
             </div>
           </li>

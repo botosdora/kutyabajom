@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { BarChart3, FileDown, ListChecks, Sparkles, Toilet } from "lucide-react";
+import { BarChart3, FileDown, ListChecks, PawPrint, Sparkles, Toilet } from "lucide-react";
 import { LogEntryCard } from "@/components/log-entry-card";
-import { getDoseSummaries } from "@/lib/day-items";
+import { getDoseSummaries, getWalkSummaries } from "@/lib/day-items";
 import { TrendChart } from "@/components/trend-chart";
 import { ButtonLink, Card, EmptyState, LoadMore, PageHeader, pageLimit, SectionTitle } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
@@ -37,7 +37,9 @@ export default async function JournalReportPage({ searchParams }: { searchParams
     .lte("day", to)
     .order("day", { ascending: false });
   const logs = data ?? [];
-  const summaries = await getDoseSummaries(pet.id, from, to);
+  const [summaries, walkSummaries] = await Promise.all([getDoseSummaries(pet.id, from, to), getWalkSummaries(pet.id, from, to)]);
+  const walkDays = [...walkSummaries.values()];
+  const walkTotal = walkDays.reduce((n, w) => n + w.walks, 0);
 
   const counts = (values: string[]) =>
     values.reduce<Record<string, number>>((acc, v) => ({ ...acc, [v]: (acc[v] ?? 0) + 1 }), {});
@@ -87,6 +89,32 @@ export default async function JournalReportPage({ searchParams }: { searchParams
           <FileDown size={18} aria-hidden="true" /> PDF
         </ButtonLink>
       </div>
+
+      {walkTotal > 0 && (
+        <Card className="mb-4">
+          <SectionTitle icon={PawPrint}>Séták</SectionTitle>
+          <ul className="text-sm">
+            <li className="flex justify-between py-0.5">
+              <span>Rögzített séták</span>
+              <span className="font-semibold">
+                {walkTotal} ({walkDays.length} napon, átlag {(walkTotal / walkDays.length).toLocaleString("hu-HU", { maximumFractionDigits: 1 })}/nap)
+              </span>
+            </li>
+            <li className="flex justify-between py-0.5">
+              <span>Pisi</span>
+              <span className="font-semibold">{walkDays.reduce((n, w) => n + w.pee, 0)} alkalom</span>
+            </li>
+            <li className="flex justify-between py-0.5">
+              <span>Kaki</span>
+              <span className="font-semibold">{walkDays.reduce((n, w) => n + w.poop, 0)} alkalom</span>
+            </li>
+            <li className="flex justify-between py-0.5">
+              <span>Nap kaki nélkül (sétás napokon)</span>
+              <span className="font-semibold">{walkDays.filter((w) => w.poop === 0).length} nap</span>
+            </li>
+          </ul>
+        </Card>
+      )}
 
       {logs.length === 0 ? (
         <EmptyState>Ebben az időszakban nincs naplóbejegyzés.</EmptyState>
@@ -153,7 +181,7 @@ export default async function JournalReportPage({ searchParams }: { searchParams
           <SectionTitle icon={ListChecks}>Bejegyzések</SectionTitle>
           <ul className="flex flex-col gap-3">
             {logs.slice(0, limit).map((l) => (
-              <LogEntryCard key={l.id} log={l} doses={summaries.get(l.day)} />
+              <LogEntryCard key={l.id} log={l} doses={summaries.get(l.day)} walks={walkSummaries.get(l.day)} />
             ))}
           </ul>
           <LoadMore shown={Math.min(limit, logs.length)} total={logs.length} href={(n) => `/naplo/kimutatas?tol=${from}&ig=${to}&db=${n}`} />
