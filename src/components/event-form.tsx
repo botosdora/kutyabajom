@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { ActionForm, SubmitButton, type FormAction } from "@/components/forms";
 import { Field, Select, TextArea } from "@/components/ui";
@@ -82,6 +83,11 @@ export function EventForm({
           />
           {taskType === "__new" && (
             <Field label="Új típus neve" name="new_task_type" placeholder="pl. fizioterápia, agility, kozmetika" required />
+          )}
+          {taskTypes.length > 0 && (
+            <Link href="/naptar/tipusok" className="-mt-2 self-start text-sm font-medium text-link hover:opacity-80">
+              Típusok átnevezése, törlése →
+            </Link>
           )}
         </>
       )}

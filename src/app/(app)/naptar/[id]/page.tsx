@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ActionForm, DeleteButton, SubmitButton } from "@/components/forms";
+import { ActionForm, AddPanel, DeleteButton, SubmitButton } from "@/components/forms";
 import { EventForm } from "@/components/event-form";
 import { SheetLauncher } from "@/components/sheet";
-import { Alert, buttonClass, Card, Field, PageHeader, Select, TextArea } from "@/components/ui";
+import { Wallet } from "lucide-react";
+import { Alert, buttonClass, Card, Field, PageHeader, SectionTitle, Select, TextArea } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { describeRepeat, EVENT_STATUS_LABELS, VET_TYPES, vetTypeLabel } from "@/lib/calendar";
-import { EXPENSE_CATEGORIES } from "@/lib/expenses";
-import { formatDate, shortTime, todayIso } from "@/lib/format";
+import { EXPENSE_CATEGORIES, expenseCategoryLabel } from "@/lib/expenses";
+import { formatDate, formatHuf, shortTime, todayIso } from "@/lib/format";
 import { getVets, vetOptions } from "@/lib/health";
 import { getTaskTypeOptions } from "@/lib/task-types";
-import { completeEvent, deleteEvent, deleteSeriesFrom, reopenEvent, updateEvent } from "../actions";
+import { addEventCost, completeEvent, deleteEvent, deleteEventCost, deleteSeriesFrom, reopenEvent, updateEvent } from "../actions";
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,7 +23,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
     .maybeSingle();
   if (!event) notFound();
 
-  const [vets, taskTypes] = await Promise.all([getVets(event.pet_id), getTaskTypeOptions(event.pet_id)]);
+  const [vets, taskTypes, { data: costs }] = await Promise.all([
+    getVets(event.pet_id),
+    getTaskTypeOptions(event.pet_id),
+    supabase.from("expenses").select("*").eq("calendar_event_id", id).order("spent_on"),
+  ]);
   const today = todayIso();
   const isVet = event.category === "orvosi";
   const typeLabel = isVet ? vetTypeLabel(event.vet_type) : (event.task_types?.name ?? "Feladat");
@@ -147,6 +152,44 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           </div>
         </section>
       )}
+
+      <section className="mb-6">
+        <SectionTitle
+          icon={Wallet}
+          action={
+            !!costs?.length && (
+              <span className="text-sm text-text-muted">Összesen: {formatHuf(costs.reduce((sum, c) => sum + c.amount_huf, 0))}</span>
+            )
+          }
+        >
+          Költségek
+        </SectionTitle>
+        {!!costs?.length && (
+          <ul className="mb-3 divide-y divide-border rounded-2xl border border-border bg-surface">
+            {costs.map((c) => (
+              <li key={c.id} className="flex items-center gap-3 py-2 pl-4 pr-2 text-sm">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{c.title}</span>
+                  <span className="block text-xs text-text-muted">
+                    {formatDate(c.spent_on)} · {expenseCategoryLabel(c.category)}
+                  </span>
+                </span>
+                <span className="font-semibold tabular-nums">{formatHuf(c.amount_huf)}</span>
+                <DeleteButton action={deleteEventCost.bind(null, c.id)} />
+              </li>
+            ))}
+          </ul>
+        )}
+        <AddPanel label="Költség hozzáadása" action={addEventCost}>
+          <input type="hidden" name="calendar_event_id" value={event.id} />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Összeg (Ft)" name="cost_huf" type="number" min={1} inputMode="numeric" required autoFocus />
+            <Field label="Dátum" name="spent_on" type="date" defaultValue={event.completed_on ?? event.event_date} required />
+          </div>
+          <Select label="Kategória" name="category" defaultValue={isVet ? "allatorvos" : "terapia"} options={EXPENSE_CATEGORIES} />
+          <Field label="Megnevezés" name="title" placeholder={`Ha üres: ${event.title}`} />
+        </AddPanel>
+      </section>
 
       {event.status !== "planned" && (
         <form action={reopenEvent.bind(null, event.id)} className="mb-6">

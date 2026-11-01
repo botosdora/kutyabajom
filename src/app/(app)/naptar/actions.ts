@@ -231,3 +231,48 @@ export async function toggleCalendarFilter(kind: string) {
   store.set(CALENDAR_FILTER_COOKIE, [...current].join(",") || "-", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
   revalidatePath("/naptar");
 }
+
+// Költség egy naptáreseményhez (akár utólag, kipipált feladatnál is).
+export async function addEventCost(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  const cost = optionalNumber(fd, "cost_huf");
+  if (!cost || cost <= 0) return { error: "Adj meg egy érvényes összeget." };
+  const supabase = await createClient();
+  const eventId = required(fd, "calendar_event_id");
+  const { data: event } = await supabase.from("calendar_events").select("pet_id, title, medical_event_id").eq("id", eventId).single();
+  if (!event) return { error: "Az esemény nem található." };
+  const { error } = await supabase.from("expenses").insert({
+    pet_id: event.pet_id,
+    spent_on: required(fd, "spent_on"),
+    category: required(fd, "category"),
+    amount_huf: Math.round(cost),
+    title: optional(fd, "title") ?? event.title,
+    calendar_event_id: eventId,
+    medical_event_id: event.medical_event_id,
+  });
+  if (error) return { error: "Nem sikerült menteni." };
+  revalidatePath("/", "layout");
+  return { message: "Költség rögzítve." };
+}
+
+export async function deleteEventCost(expenseId: string) {
+  const supabase = await createClient();
+  await supabase.from("expenses").delete().eq("id", expenseId);
+  revalidatePath("/", "layout");
+}
+
+// Feladattípusok kezelése: átnevezés és törlés (a feladatok megmaradnak, típus nélkül).
+export async function renameTaskType(_: ActionResult, fd: FormData): Promise<ActionResult> {
+  const name = required(fd, "name");
+  if (!name) return { error: "Add meg a nevét." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("task_types").update({ name }).eq("id", required(fd, "id"));
+  if (error) return { error: error.code === "23505" ? "Ilyen nevű típus már van." : "Nem sikerült menteni." };
+  revalidatePath("/", "layout");
+  return { message: "Elmentve." };
+}
+
+export async function deleteTaskType(id: string) {
+  const supabase = await createClient();
+  await supabase.from("task_types").delete().eq("id", id);
+  revalidatePath("/", "layout");
+}

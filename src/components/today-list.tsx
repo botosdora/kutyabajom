@@ -238,7 +238,7 @@ function TaskRow({ item, petId, day, hideTime = false }: { item: TodayItem; petI
                   href={`/naptar/${item.eventId}`}
                   className="flex h-12 items-center gap-3 rounded-2xl bg-surface-muted px-4 text-[15px] font-semibold hover:bg-border"
                 >
-                  <ExternalLink size={18} className="text-text-muted" aria-hidden="true" /> Részletek
+                  <ExternalLink size={18} className="text-text-muted" aria-hidden="true" /> Részletek, költség
                 </Link>
               )}
             </>
